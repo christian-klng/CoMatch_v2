@@ -1,0 +1,22 @@
+# Local development: only Postgres runs in a container.
+# Frontend (npm run dev) and API (cd api && npm run dev) run on the host
+# for hot-reload. Mirrors the Coolify setup where Postgres is its own service.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: comatch
+      POSTGRES_PASSWORD: comatch
+      POSTGRES_DB: comatch
+    ports:
+      - "5432:5432"
+    volumes:
+      - comatch_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U comatch"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  comatch_pgdata:
