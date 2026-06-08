@@ -59,11 +59,6 @@ async function sendJson<T>(method: string, path: string, body?: unknown): Promis
 const postJson = <T>(path: string, body: unknown) => sendJson<T>("POST", path, body);
 
 // --- Domain data ----------------------------------------------------------
-// Temporary identity until the logged-in user is threaded into matches
-// (needs the real viewer id + saved skills). See setConnection note.
-export const DEMO_VIEWER_ID = "00000000-0000-0000-0000-0000000000a1";
-export const DEMO_COMMUNITY_ID = "00000000-0000-0000-0000-0000000000c1";
-
 export interface SkillOption {
   id: string;
   label: string;
@@ -73,12 +68,19 @@ export function fetchSkills(): Promise<SkillOption[]> {
   return getJson<SkillOption[]>("/api/skills");
 }
 
+/** Matches for the logged-in user, pooled across all their communities. */
 export function fetchMatches(): Promise<Person[]> {
-  const q = new URLSearchParams({
-    viewer: DEMO_VIEWER_ID,
-    community: DEMO_COMMUNITY_ID,
-  });
-  return getJson<Person[]>(`/api/matches?${q.toString()}`);
+  return getJson<Person[]>("/api/matches");
+}
+
+/** The logged-in user's saved seeks/offers (catalog skill ids). */
+export function apiGetMySkills(): Promise<{ seeks: string[]; offers: string[] }> {
+  return getJson<{ seeks: string[]; offers: string[] }>("/api/me/skills");
+}
+
+/** Replace the logged-in user's seeks/offers with the given catalog ids. */
+export function apiSaveMySkills(seeks: string[], offers: string[]): Promise<{ ok: true }> {
+  return sendJson<{ ok: true }>("PUT", "/api/me/skills", { seeks, offers });
 }
 
 // --- Communities (membership) ---------------------------------------------

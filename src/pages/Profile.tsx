@@ -12,7 +12,6 @@ export function Profile() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { communities } = useMyCommunities();
-  const activeCommunity = communities[0] ?? null;
   const displayName = user?.name ?? user?.email ?? "Du";
   const subtitle = [user?.role, user?.company].filter(Boolean).join(" · ");
 
@@ -42,19 +41,45 @@ export function Profile() {
           </div>
         </Card>
 
-        <Card className="flex items-center gap-3 p-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
-            <IconUsers width={20} height={20} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-ink">Aktive Community</p>
-            <p className="truncate text-sm text-muted">
-              {activeCommunity?.name ?? "Noch keiner Community beigetreten"}
+        <Card className="p-4">
+          <div className="mb-1 flex items-center justify-between">
+            <p className="text-sm font-medium text-ink">
+              Meine Communities
+              {communities.length > 0 && (
+                <span className="ml-1 text-muted">({communities.length})</span>
+              )}
             </p>
+            <Button size="sm" variant="ghost" onClick={() => navigate("/scan")}>
+              Beitreten
+            </Button>
           </div>
-          <Button size="sm" variant="ghost" onClick={() => navigate("/scan")}>
-            {activeCommunity ? "Wechseln" : "Beitreten"}
-          </Button>
+
+          {communities.length === 0 ? (
+            <p className="text-sm text-muted">Noch keiner Community beigetreten.</p>
+          ) : (
+            <ul className="space-y-2">
+              {communities.map((c) => (
+                <li key={c.id} className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                    <IconUsers width={18} height={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-ink">{c.name}</p>
+                    <p className="truncate text-xs text-muted">
+                      {c.memberCount} Mitglieder
+                      {c.context ? ` · ${c.context}` : ""}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {communities.length > 1 && (
+            <p className="mt-3 text-xs text-faint">
+              Deine Matches kommen aus allen deinen Communities zusammen.
+            </p>
+          )}
         </Card>
 
         <Link to="/styleguide">

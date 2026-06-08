@@ -1,16 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ScreenHeader } from "../components/AppShell";
 import { Button } from "../components/ui/Button";
 import { cn } from "../lib/cn";
-import { fetchSkills } from "../lib/api";
-import {
-  IconArrowRight,
-  IconGift,
-  IconPlus,
-  IconSearch,
-  IconSparkles,
-} from "../components/icons";
+import { apiGetMySkills, apiSaveMySkills, fetchSkills, type SkillOption } from "../lib/api";
+import { IconArrowRight, IconGift, IconSearch, IconSparkles } from "../components/icons";
 
 type Mode = "seek" | "offer";
 
@@ -18,40 +12,46 @@ export function Skills() {
   const navigate = useNavigate();
   const [seeks, setSeeks] = useState<Set<string>>(new Set());
   const [offers, setOffers] = useState<Set<string>>(new Set());
-  const [custom, setCustom] = useState("");
-  const [extra, setExtra] = useState<string[]>([]);
   const [mode, setMode] = useState<Mode>("seek");
-  const [catalog, setCatalog] = useState<string[]>([]);
+  const [catalog, setCatalog] = useState<SkillOption[]>([]);
+  const [saving, setSaving] = useState(false);
 
-  // Controlled skill vocabulary from the API.
+  // Controlled skill vocabulary + the user's previously saved selection.
   useEffect(() => {
     fetchSkills()
-      .then((skills) => setCatalog(skills.map((s) => s.label)))
-      .catch((err) => console.error("[skills] load failed", err));
+      .then(setCatalog)
+      .catch((err) => console.error("[skills] catalog load failed", err));
+    apiGetMySkills()
+      .then(({ seeks, offers }) => {
+        setSeeks(new Set(seeks));
+        setOffers(new Set(offers));
+      })
+      .catch((err) => console.error("[skills] saved selection load failed", err));
   }, []);
 
   const active = mode === "seek" ? seeks : offers;
   const setActive = mode === "seek" ? setSeeks : setOffers;
 
-  const toggle = (label: string) => {
+  const toggle = (id: string) => {
     setActive((prev) => {
       const next = new Set(prev);
-      next.has(label) ? next.delete(label) : next.add(label);
+      next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
   };
 
-  const addCustom = () => {
-    const label = custom.trim();
-    if (!label) return;
-    if (!extra.includes(label)) setExtra((e) => [...e, label]);
-    setActive((prev) => new Set(prev).add(label));
-    setCustom("");
-  };
-
-  const options = useMemo(() => [...catalog, ...extra], [catalog, extra]);
-
   const total = seeks.size + offers.size;
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await apiSaveMySkills([...seeks], [...offers]);
+      navigate("/matches");
+    } catch (err) {
+      console.error("[skills] save failed", err);
+      setSaving(false);
+    }
+  };
 
   return (
     <>
@@ -92,12 +92,12 @@ export function Skills() {
 
         {/* Chips */}
         <div className="flex flex-wrap gap-2">
-          {options.map((label) => {
-            const on = active.has(label);
+          {catalog.map(({ id, label }) => {
+            const on = active.has(id);
             return (
               <button
-                key={label}
-                onClick={() => toggle(label)}
+                key={id}
+                onClick={() => toggle(id)}
                 className={cn(
                   "rounded-full border px-3.5 py-2 text-sm font-medium transition-all active:scale-95",
                   on
@@ -112,36 +112,17 @@ export function Skills() {
             );
           })}
         </div>
-
-        {/* Custom add */}
-        <div className="mt-5 flex gap-2">
-          <input
-            value={custom}
-            onChange={(e) => setCustom(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addCustom()}
-            placeholder={
-              mode === "seek" ? "Etwas anderes gesucht?" : "Etwas anderes anzubieten?"
-            }
-            className="h-11 flex-1 rounded-md border border-border bg-surface px-3.5 text-[15px] placeholder:text-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-          />
-          <Button variant="secondary" onClick={addCustom} disabled={!custom.trim()}>
-            <IconPlus width={18} height={18} />
-          </Button>
-        </div>
       </div>
 
       {/* Sticky CTA */}
       <div className="safe-bottom fixed inset-x-0 bottom-[68px] z-20 mx-auto w-full max-w-[440px] border-t border-border bg-bg/90 px-5 py-3 backdrop-blur-md">
-        <Button
-          fullWidth
-          size="lg"
-          disabled={total === 0}
-          onClick={() => navigate("/matches")}
-        >
+        <Button fullWidth size="lg" disabled={total === 0 || saving} onClick={save}>
           {total === 0
             ? "Wähle mindestens einen Skill"
-            : `Matches finden (${total} gewählt)`}
-          {total > 0 && <IconArrowRight width={18} height={18} />}
+            : saving
+              ? "Speichere…"
+              : `Matches finden (${total} gewählt)`}
+          {total > 0 && !saving && <IconArrowRight width={18} height={18} />}
         </Button>
       </div>
     </>

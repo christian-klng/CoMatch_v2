@@ -1,17 +1,15 @@
 import { Hono } from "hono";
 import { pool } from "../db.js";
+import { type AuthEnv, requireAuth } from "../auth.js";
 
-export const matches = new Hono();
+export const matches = new Hono<AuthEnv>();
 
-// GET /api/matches?viewer=<userId>&community=<communityId>
-// Returns the other community members scored against the viewer's seeks/offers.
-// This is the real-data shape of MOCK_MATCHES (src/lib/mockData.ts).
-matches.get("/", async (c) => {
-  const viewerId = c.req.query("viewer");
-  const communityId = c.req.query("community");
-  if (!viewerId || !communityId) {
-    return c.json({ error: "viewer and community query params are required" }, 400);
-  }
+// GET /api/matches — the logged-in user's matches across ALL their communities.
+// Candidates are everyone who shares at least one community with the viewer
+// (deduplicated), scored against the viewer's seeks/offers. A user in several
+// communities therefore gets a larger pool — that's the intended model.
+matches.get("/", requireAuth, async (c) => {
+  const viewerId = c.get("userId");
 
   // 1. Viewer's own skills.
   const mine = await pool.query<{ kind: "seek" | "offer"; label: string }>(
@@ -23,14 +21,18 @@ matches.get("/", async (c) => {
   const mySeeks = new Set(mine.rows.filter((r) => r.kind === "seek").map((r) => r.label));
   const myOffers = new Set(mine.rows.filter((r) => r.kind === "offer").map((r) => r.label));
 
-  // 2. Candidate members in the same community (excluding the viewer).
+  // 2. Candidate pool: distinct users who share ANY community with the viewer
+  //    (excluding the viewer). Union across all of the viewer's memberships.
   const candidates = await pool.query(
-    `select u.id, u.name, u.role, u.company,
+    `select distinct u.id, u.name, u.role, u.company,
             u.avatar_url as "avatarUrl", u.bio, u.attributes
        from users u
        join community_members m on m.user_id = u.id
-      where m.community_id = $1 and u.id <> $2`,
-    [communityId, viewerId],
+      where u.id <> $1
+        and m.community_id in (
+          select community_id from community_members where user_id = $1
+        )`,
+    [viewerId],
   );
   if (candidates.rows.length === 0) return c.json([]);
 
