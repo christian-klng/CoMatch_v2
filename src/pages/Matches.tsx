@@ -1,12 +1,13 @@
 import { ScreenHeader } from "../components/AppShell";
 import { MatchCard } from "../components/MatchCard";
 import { Badge } from "../components/ui/Badge";
-import { useMatches } from "../lib/matchStore";
+import { useMatches, useMatchesStatus } from "../lib/matchStore";
 import { CURRENT_COMMUNITY } from "../lib/mockData";
 import { IconSparkles } from "../components/icons";
 
 export function Matches() {
   const matches = useMatches();
+  const status = useMatchesStatus();
   const sorted = [...matches].sort((a, b) => b.matchScore - a.matchScore);
   const incoming = sorted.filter((m) => m.connection === "incoming");
 
@@ -30,7 +31,11 @@ export function Matches() {
           </div>
         )}
 
-        {sorted.length === 0 ? (
+        {status === "loading" ? (
+          <LoadingState />
+        ) : status === "error" ? (
+          <ErrorState />
+        ) : sorted.length === 0 ? (
           <EmptyState />
         ) : (
           <div className="space-y-3">
@@ -47,6 +52,31 @@ export function Matches() {
         )}
       </div>
     </>
+  );
+}
+
+function LoadingState() {
+  return (
+    <div className="space-y-3">
+      {[0, 1, 2].map((i) => (
+        <div
+          key={i}
+          className="h-28 animate-pulse rounded-xl border border-border bg-surface-2/60"
+        />
+      ))}
+    </div>
+  );
+}
+
+function ErrorState() {
+  return (
+    <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
+      <h3 className="font-semibold text-ink">Matches konnten nicht geladen werden</h3>
+      <p className="max-w-[260px] text-sm text-muted">
+        Die Verbindung zur API ist fehlgeschlagen. Prüfe deine Internetverbindung
+        und versuche es später erneut.
+      </p>
+    </div>
   );
 }
 

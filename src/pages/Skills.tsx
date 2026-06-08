@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ScreenHeader } from "../components/AppShell";
 import { Button } from "../components/ui/Button";
 import { cn } from "../lib/cn";
-import { SKILL_CATALOG } from "../lib/mockData";
+import { fetchSkills } from "../lib/api";
 import {
   IconArrowRight,
   IconGift,
@@ -21,6 +21,14 @@ export function Skills() {
   const [custom, setCustom] = useState("");
   const [extra, setExtra] = useState<string[]>([]);
   const [mode, setMode] = useState<Mode>("seek");
+  const [catalog, setCatalog] = useState<string[]>([]);
+
+  // Controlled skill vocabulary from the API.
+  useEffect(() => {
+    fetchSkills()
+      .then((skills) => setCatalog(skills.map((s) => s.label)))
+      .catch((err) => console.error("[skills] load failed", err));
+  }, []);
 
   const active = mode === "seek" ? seeks : offers;
   const setActive = mode === "seek" ? setSeeks : setOffers;
@@ -41,10 +49,7 @@ export function Skills() {
     setCustom("");
   };
 
-  const options = useMemo(
-    () => [...SKILL_CATALOG.map((s) => s.label), ...extra],
-    [extra]
-  );
+  const options = useMemo(() => [...catalog, ...extra], [catalog, extra]);
 
   const total = seeks.size + offers.size;
 
