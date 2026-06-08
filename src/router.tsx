@@ -10,7 +10,6 @@ import { Skills } from "./pages/Skills";
 import { Matches } from "./pages/Matches";
 import { MatchDetail } from "./pages/MatchDetail";
 import { Profile } from "./pages/Profile";
-import { Admin } from "./pages/Admin";
 import { Styleguide } from "./pages/Styleguide";
 
 function Spinner() {
@@ -81,9 +80,6 @@ export const router = createBrowserRouter([
       },
     ],
   },
-
-  // Admin (standalone, no shell, no auth yet)
-  { path: "/admin", element: <Admin /> },
 
   // Standalone
   { path: "/styleguide", element: <Styleguide /> },
