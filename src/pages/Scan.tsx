@@ -3,12 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { ScreenHeader } from "../components/AppShell";
 import { QRScanner } from "../components/QRScanner";
 import { Button } from "../components/ui/Button";
-import { IconArrowRight, IconCheck, IconUsers } from "../components/icons";
+import { IconArrowRight, IconUsers } from "../components/icons";
 import { apiCommunityByCode, apiJoinCommunity } from "../lib/api";
 import { refreshCommunities } from "../lib/community";
 import type { Community } from "../lib/types";
 
-type Phase = "input" | "preview" | "joined";
+type Phase = "input" | "confirm";
 
 export function Scan() {
   const navigate = useNavigate();
@@ -29,7 +29,7 @@ export function Scan() {
     try {
       const found = await apiCommunityByCode(code);
       setCommunity(found);
-      setPhase("preview");
+      setPhase("confirm");
     } catch {
       setError("Kein gültiger Community-Code. Prüfe die Ziffern und versuche es erneut.");
     } finally {
@@ -37,18 +37,17 @@ export function Scan() {
     }
   };
 
+  // Join and go straight to skills — no separate "welcome" step.
   const join = async () => {
     if (!community) return;
     setBusy(true);
     setError(null);
     try {
-      const joined = await apiJoinCommunity(community.code);
-      setCommunity(joined);
+      await apiJoinCommunity(community.code);
       refreshCommunities();
-      setPhase("joined");
+      navigate("/skills");
     } catch {
       setError("Beitritt fehlgeschlagen. Bitte versuche es erneut.");
-    } finally {
       setBusy(false);
     }
   };
@@ -78,20 +77,43 @@ export function Scan() {
           </div>
         )}
 
-        {phase === "preview" && community && (
-          <div className="animate-rise space-y-6 pt-2">
-            <p className="text-[15px] leading-relaxed text-ink-soft">
-              Wir haben diese Community gefunden. Möchtest du beitreten?
-            </p>
-            <CommunityCard community={community} />
+        {phase === "confirm" && community && (
+          <div className="animate-rise space-y-6 pt-2 text-center">
+            <div>
+              <h2 className="text-xl font-semibold text-ink">
+                Bereit zum Beitreten
+              </h2>
+              <p className="mt-1 text-sm text-muted">
+                Danach wählst du direkt, was du suchst.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-border bg-surface p-5 text-left shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                  <IconUsers width={22} height={22} />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-ink">{community.name}</p>
+                  {community.context && (
+                    <p className="text-sm text-muted">{community.context}</p>
+                  )}
+                  <p className="mt-1 text-xs text-faint">
+                    {community.memberCount} Mitglieder · Code {community.code}
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {error && (
               <p className="rounded-lg bg-danger-soft px-4 py-3 text-sm text-danger">
                 {error}
               </p>
             )}
+
             <div className="space-y-2">
               <Button fullWidth size="lg" disabled={busy} onClick={join}>
-                {busy ? "Trete bei…" : "Beitreten"}
+                {busy ? "Trete bei…" : "Beitreten & loslegen"}
                 {!busy && <IconArrowRight width={18} height={18} />}
               </Button>
               <Button
@@ -109,49 +131,7 @@ export function Scan() {
             </div>
           </div>
         )}
-
-        {phase === "joined" && community && (
-          <div className="animate-rise space-y-6 pt-6 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success-soft text-success">
-              <IconCheck width={30} height={30} />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-ink">
-                Willkommen in der Community
-              </h2>
-              <p className="mt-1 text-sm text-muted">
-                Du bist beigetreten – jetzt sag uns, was du suchst.
-              </p>
-            </div>
-            <CommunityCard community={community} />
-            <Button fullWidth size="lg" onClick={() => navigate("/skills")}>
-              Weiter
-              <IconArrowRight width={18} height={18} />
-            </Button>
-          </div>
-        )}
       </div>
     </>
-  );
-}
-
-function CommunityCard({ community }: { community: Community }) {
-  return (
-    <div className="rounded-xl border border-border bg-surface p-5 text-left shadow-sm">
-      <div className="flex items-start gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
-          <IconUsers width={22} height={22} />
-        </div>
-        <div className="min-w-0">
-          <p className="font-semibold text-ink">{community.name}</p>
-          {community.context && (
-            <p className="text-sm text-muted">{community.context}</p>
-          )}
-          <p className="mt-1 text-xs text-faint">
-            {community.memberCount} Mitglieder · Code {community.code}
-          </p>
-        </div>
-      </div>
-    </div>
   );
 }
