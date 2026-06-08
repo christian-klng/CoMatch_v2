@@ -4,8 +4,13 @@ import { sign, verify } from "hono/jwt";
 
 const JWT_SECRET = process.env.JWT_SECRET ?? "";
 if (!JWT_SECRET) {
-  console.warn("[auth] JWT_SECRET is not set — sessions will be insecure.");
+  if (process.env.NODE_ENV === "production") {
+    // Refuse to boot with forgeable sessions in production.
+    throw new Error("JWT_SECRET is not set — refusing to start with insecure sessions.");
+  }
+  console.warn("[auth] JWT_SECRET is not set — using an insecure dev default. Set JWT_SECRET in production.");
 }
+const SECRET = JWT_SECRET || "dev-insecure-secret-change-me";
 
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
 
@@ -23,12 +28,12 @@ export function hashToken(token: string): string {
 
 export function issueJwt(userId: string): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  return sign({ sub: userId, iat: now, exp: now + SESSION_TTL_SECONDS }, JWT_SECRET);
+  return sign({ sub: userId, iat: now, exp: now + SESSION_TTL_SECONDS }, SECRET);
 }
 
 async function verifyJwt(token: string): Promise<string | null> {
   try {
-    const payload = await verify(token, JWT_SECRET, "HS256");
+    const payload = await verify(token, SECRET, "HS256");
     return typeof payload.sub === "string" ? payload.sub : null;
   } catch {
     return null;

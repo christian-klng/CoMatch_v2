@@ -8,11 +8,13 @@ import {
   requireAuth,
 } from "../auth.js";
 import { sendMagicLink } from "../mailer.js";
+import { clientIp, rateLimit } from "../ratelimit.js";
 
 export const auth = new Hono<AuthEnv>();
 
 const APP_URL = (process.env.APP_URL ?? "").replace(/\/$/, "");
 const TOKEN_TTL_MINUTES = 15;
+const RATE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
 // POST /api/auth/request { email } → create/find user, email a magic link.
 // Passwordless: requesting a link for a new email signs the user up.
@@ -21,6 +23,18 @@ auth.post("/request", async (c) => {
   const email = body.email?.trim().toLowerCase();
   if (!email || !email.includes("@")) {
     return c.json({ error: "valid email required" }, 400);
+  }
+
+  // Rate-limit before any DB write or mail send, so this endpoint can't be
+  // abused to spam an inbox or to relay mail through our SMTP account.
+  // Per-email caps flooding one address; per-IP caps enumerating many.
+  const ip = clientIp(c.req.header("x-forwarded-for"), c.req.header("x-real-ip"));
+  const byEmail = rateLimit(`auth:email:${email}`, 3, RATE_WINDOW_MS);
+  const byIp = rateLimit(`auth:ip:${ip}`, 15, RATE_WINDOW_MS);
+  if (!byEmail.ok || !byIp.ok) {
+    const retryAfter = Math.max(byEmail.retryAfter, byIp.retryAfter);
+    c.header("Retry-After", String(retryAfter));
+    return c.json({ error: "rate_limited", retryAfter }, 429);
   }
 
   const { rows } = await pool.query<{ id: string }>(
