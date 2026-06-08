@@ -10,7 +10,22 @@ import { admin } from "./routes/admin.js";
 
 const app = new Hono();
 
-app.use("*", cors({ origin: process.env.CORS_ORIGIN ?? "*" }));
+// CORS_ORIGIN may list several allowed origins (comma-separated) — we now serve
+// two browser apps (user frontend + admin) on different domains. "*" allows all.
+const allowedOrigins = (process.env.CORS_ORIGIN ?? "*")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+app.use(
+  "*",
+  cors({
+    origin: (origin) => {
+      if (allowedOrigins.includes("*")) return origin || "*";
+      return allowedOrigins.includes(origin) ? origin : null;
+    },
+  }),
+);
 
 app.route("/health", health);
 app.route("/api/auth", auth);
