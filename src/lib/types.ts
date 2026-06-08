@@ -25,11 +25,17 @@ export interface Skill {
 export interface Community {
   id: string;
   name: string;
-  /** What the QR code encodes. In prod: signed + expiring, not a raw id. */
-  joinCode: string;
+  /** 8-digit join code, used for both QR scan and manual entry. */
+  code: string;
   memberCount: number;
   /** e.g. an event or org context */
   context?: string;
+}
+
+/** Admin view of a community — adds the publish gate and creation time. */
+export interface AdminCommunity extends Community {
+  published: boolean;
+  createdAt: string;
 }
 
 /** Hybrid matching: suggestions are visible, a connection is requested/confirmed. */

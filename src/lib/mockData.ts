@@ -24,7 +24,7 @@ export const SKILL_CATALOG: Skill[] = [
 export const CURRENT_COMMUNITY: Community = {
   id: "c_techfest25",
   name: "TechFest Berlin 2025",
-  joinCode: "comatch://join/c_techfest25?sig=demo",
+  code: "10000001",
   memberCount: 248,
   context: "Konferenz · 12.–13. Juni",
 };

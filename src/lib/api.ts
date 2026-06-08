@@ -1,4 +1,4 @@
-import type { AuthUser, Person } from "./types";
+import type { AdminCommunity, AuthUser, Community, Person } from "./types";
 
 // Base URL of the API, baked in at build time via the VITE_API_URL build-arg.
 // Empty string falls back to same-origin (only correct if API is reverse-proxied).
@@ -9,6 +9,17 @@ if (!BASE && import.meta.env.PROD) {
     "[api] VITE_API_URL is empty — set it as a build arg in Coolify and redeploy " +
       "the frontend, otherwise API calls hit the wrong origin.",
   );
+}
+
+/** Error carrying the HTTP status, so callers can branch on e.g. 404. */
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
 }
 
 // --- Session token storage ------------------------------------------------
@@ -31,23 +42,25 @@ function authHeaders(): Record<string, string> {
 
 async function getJson<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`, { headers: authHeaders() });
-  if (!res.ok) throw new Error(`GET ${path} → ${res.status} ${res.statusText}`);
+  if (!res.ok) throw new ApiError(res.status, `GET ${path} → ${res.status} ${res.statusText}`);
   return (await res.json()) as T;
 }
 
-async function postJson<T>(path: string, body: unknown): Promise<T> {
+async function sendJson<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
-    method: "POST",
+    method,
     headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify(body),
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`POST ${path} → ${res.status} ${res.statusText}`);
+  if (!res.ok) throw new ApiError(res.status, `${method} ${path} → ${res.status} ${res.statusText}`);
   return (await res.json()) as T;
 }
+
+const postJson = <T>(path: string, body: unknown) => sendJson<T>("POST", path, body);
 
 // --- Domain data ----------------------------------------------------------
 // Temporary identity until the logged-in user is threaded into matches
-// (needs onboarding: join community + save skills). See setConnection note.
+// (needs the real viewer id + saved skills). See setConnection note.
 export const DEMO_VIEWER_ID = "00000000-0000-0000-0000-0000000000a1";
 export const DEMO_COMMUNITY_ID = "00000000-0000-0000-0000-0000000000c1";
 
@@ -66,6 +79,46 @@ export function fetchMatches(): Promise<Person[]> {
     community: DEMO_COMMUNITY_ID,
   });
   return getJson<Person[]>(`/api/matches?${q.toString()}`);
+}
+
+// --- Communities (membership) ---------------------------------------------
+/** Communities the current user belongs to. */
+export function apiMyCommunities(): Promise<Community[]> {
+  return getJson<Community[]>("/api/communities/mine");
+}
+
+/** Resolve a published community by its 8-digit code (preview before joining). */
+export function apiCommunityByCode(code: string): Promise<Community> {
+  return getJson<Community>(`/api/communities/by-code/${encodeURIComponent(code)}`);
+}
+
+/** Join a published community by code. Throws ApiError(404) on an invalid code. */
+export function apiJoinCommunity(code: string): Promise<Community> {
+  return postJson<Community>("/api/communities/join", { code });
+}
+
+// --- Admin (no auth yet) --------------------------------------------------
+export function apiAdminListCommunities(): Promise<AdminCommunity[]> {
+  return getJson<AdminCommunity[]>("/api/admin/communities");
+}
+
+export function apiAdminCreateCommunity(input: {
+  name: string;
+  context?: string;
+  published?: boolean;
+}): Promise<AdminCommunity> {
+  return postJson<AdminCommunity>("/api/admin/communities", input);
+}
+
+export function apiAdminUpdateCommunity(
+  id: string,
+  patch: { name?: string; context?: string; published?: boolean },
+): Promise<AdminCommunity> {
+  return sendJson<AdminCommunity>("PATCH", `/api/admin/communities/${id}`, patch);
+}
+
+export function apiAdminDeleteCommunity(id: string): Promise<{ ok: true }> {
+  return sendJson<{ ok: true }>("DELETE", `/api/admin/communities/${id}`);
 }
 
 // --- Auth (magic link) ----------------------------------------------------

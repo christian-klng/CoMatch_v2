@@ -8,6 +8,7 @@ import {
   getToken,
   setToken,
 } from "./api";
+import { refreshCommunities, resetCommunities } from "./community";
 
 export type AuthStatus = "loading" | "authenticated" | "anonymous";
 
@@ -51,10 +52,12 @@ export async function verifyMagicLink(token: string): Promise<void> {
   const { token: jwt, user } = await apiVerifyMagicLink(token);
   setToken(jwt);
   set({ status: "authenticated", user });
+  refreshCommunities(); // load memberships for the onboarding gate
 }
 
 export function logout(): void {
   clearToken();
+  resetCommunities();
   set({ status: "anonymous", user: null });
 }
 

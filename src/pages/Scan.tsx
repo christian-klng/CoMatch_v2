@@ -4,32 +4,113 @@ import { ScreenHeader } from "../components/AppShell";
 import { QRScanner } from "../components/QRScanner";
 import { Button } from "../components/ui/Button";
 import { IconArrowRight, IconCheck, IconUsers } from "../components/icons";
-import { CURRENT_COMMUNITY } from "../lib/mockData";
+import { apiCommunityByCode, apiJoinCommunity } from "../lib/api";
+import { refreshCommunities } from "../lib/community";
+import type { Community } from "../lib/types";
+
+type Phase = "input" | "preview" | "joined";
 
 export function Scan() {
   const navigate = useNavigate();
-  const [joined, setJoined] = useState(false);
+  const [phase, setPhase] = useState<Phase>("input");
+  const [community, setCommunity] = useState<Community | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  // Dummy: any scanned/entered code "resolves" to the demo community.
-  const handleResult = (_value: string) => setJoined(true);
+  // A scan or manual entry may carry extra characters (e.g. a URL); keep digits.
+  const resolve = async (raw: string) => {
+    const code = raw.replace(/\D/g, "").slice(0, 8);
+    if (code.length !== 8) {
+      setError("Bitte gib den 8-stelligen Community-Code ein.");
+      return;
+    }
+    setError(null);
+    setBusy(true);
+    try {
+      const found = await apiCommunityByCode(code);
+      setCommunity(found);
+      setPhase("preview");
+    } catch {
+      setError("Kein gültiger Community-Code. Prüfe die Ziffern und versuche es erneut.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const join = async () => {
+    if (!community) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const joined = await apiJoinCommunity(community.code);
+      setCommunity(joined);
+      refreshCommunities();
+      setPhase("joined");
+    } catch {
+      setError("Beitritt fehlgeschlagen. Bitte versuche es erneut.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <>
       <ScreenHeader
         title="Community beitreten"
-        subtitle="Scanne den QR-Code deines Events"
+        subtitle="Scanne den QR-Code oder gib den Code ein"
       />
 
       <div className="px-5 py-5">
-        {!joined ? (
+        {phase === "input" && (
           <div className="animate-rise space-y-5">
             <p className="text-[15px] leading-relaxed text-ink-soft">
-              Richte die Kamera auf den QR-Code, den du vor Ort findest. Darüber
-              kommst du in die richtige Community – nur dort wirst du gematcht.
+              Richte die Kamera auf den QR-Code, den du vor Ort findest – oder
+              tippe den 8-stelligen Code manuell ein. Nur in deiner Community
+              wirst du gematcht.
             </p>
-            <QRScanner onResult={handleResult} />
+            <QRScanner onResult={resolve} />
+            {busy && <p className="text-center text-sm text-muted">Code wird geprüft…</p>}
+            {error && (
+              <p className="rounded-lg bg-danger-soft px-4 py-3 text-sm text-danger">
+                {error}
+              </p>
+            )}
           </div>
-        ) : (
+        )}
+
+        {phase === "preview" && community && (
+          <div className="animate-rise space-y-6 pt-2">
+            <p className="text-[15px] leading-relaxed text-ink-soft">
+              Wir haben diese Community gefunden. Möchtest du beitreten?
+            </p>
+            <CommunityCard community={community} />
+            {error && (
+              <p className="rounded-lg bg-danger-soft px-4 py-3 text-sm text-danger">
+                {error}
+              </p>
+            )}
+            <div className="space-y-2">
+              <Button fullWidth size="lg" disabled={busy} onClick={join}>
+                {busy ? "Trete bei…" : "Beitreten"}
+                {!busy && <IconArrowRight width={18} height={18} />}
+              </Button>
+              <Button
+                fullWidth
+                variant="ghost"
+                disabled={busy}
+                onClick={() => {
+                  setPhase("input");
+                  setCommunity(null);
+                  setError(null);
+                }}
+              >
+                Anderen Code eingeben
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {phase === "joined" && community && (
           <div className="animate-rise space-y-6 pt-6 text-center">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success-soft text-success">
               <IconCheck width={30} height={30} />
@@ -42,26 +123,7 @@ export function Scan() {
                 Du bist beigetreten – jetzt sag uns, was du suchst.
               </p>
             </div>
-
-            <div className="rounded-xl border border-border bg-surface p-5 text-left shadow-sm">
-              <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
-                  <IconUsers width={22} height={22} />
-                </div>
-                <div className="min-w-0">
-                  <p className="font-semibold text-ink">
-                    {CURRENT_COMMUNITY.name}
-                  </p>
-                  <p className="text-sm text-muted">
-                    {CURRENT_COMMUNITY.context}
-                  </p>
-                  <p className="mt-1 text-xs text-faint">
-                    {CURRENT_COMMUNITY.memberCount} Mitglieder
-                  </p>
-                </div>
-              </div>
-            </div>
-
+            <CommunityCard community={community} />
             <Button fullWidth size="lg" onClick={() => navigate("/skills")}>
               Weiter
               <IconArrowRight width={18} height={18} />
@@ -70,5 +132,26 @@ export function Scan() {
         )}
       </div>
     </>
+  );
+}
+
+function CommunityCard({ community }: { community: Community }) {
+  return (
+    <div className="rounded-xl border border-border bg-surface p-5 text-left shadow-sm">
+      <div className="flex items-start gap-3">
+        <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+          <IconUsers width={22} height={22} />
+        </div>
+        <div className="min-w-0">
+          <p className="font-semibold text-ink">{community.name}</p>
+          {community.context && (
+            <p className="text-sm text-muted">{community.context}</p>
+          )}
+          <p className="mt-1 text-xs text-faint">
+            {community.memberCount} Mitglieder · Code {community.code}
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }

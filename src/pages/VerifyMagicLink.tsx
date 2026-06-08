@@ -22,7 +22,8 @@ export function VerifyMagicLink() {
       return;
     }
     verifyMagicLink(token)
-      .then(() => navigate("/scan", { replace: true }))
+      // Land on matches; the community gate bounces new users to /scan.
+      .then(() => navigate("/matches", { replace: true }))
       .catch(() => setState("error"));
   }, [params, navigate]);
 

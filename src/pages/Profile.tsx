@@ -4,13 +4,15 @@ import { Avatar } from "../components/ui/Avatar";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
-import { CURRENT_COMMUNITY } from "../lib/mockData";
 import { logout, useAuth } from "../lib/auth";
+import { useMyCommunities } from "../lib/community";
 import { IconArrowRight, IconUsers } from "../components/icons";
 
 export function Profile() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { communities } = useMyCommunities();
+  const activeCommunity = communities[0] ?? null;
   const displayName = user?.name ?? user?.email ?? "Du";
   const subtitle = [user?.role, user?.company].filter(Boolean).join(" · ");
 
@@ -47,11 +49,11 @@ export function Profile() {
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-ink">Aktive Community</p>
             <p className="truncate text-sm text-muted">
-              {CURRENT_COMMUNITY.name}
+              {activeCommunity?.name ?? "Noch keiner Community beigetreten"}
             </p>
           </div>
           <Button size="sm" variant="ghost" onClick={() => navigate("/scan")}>
-            Wechseln
+            {activeCommunity ? "Wechseln" : "Beitreten"}
           </Button>
         </Card>
 
