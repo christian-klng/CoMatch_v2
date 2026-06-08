@@ -1,4 +1,4 @@
-import type { Person } from "./types";
+import type { AuthUser, Person } from "./types";
 
 // Base URL of the API, baked in at build time via the VITE_API_URL build-arg.
 // Empty string falls back to same-origin (only correct if API is reverse-proxied).
@@ -11,16 +11,45 @@ if (!BASE && import.meta.env.PROD) {
   );
 }
 
-// Temporary identity until real auth exists. Anna (seed user) acts as the
-// logged-in viewer and sees the other community members as her matches.
-export const DEMO_VIEWER_ID = "00000000-0000-0000-0000-0000000000a1";
-export const DEMO_COMMUNITY_ID = "00000000-0000-0000-0000-0000000000c1";
+// --- Session token storage ------------------------------------------------
+const TOKEN_KEY = "comatch_token";
+
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+export function setToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+export function clearToken(): void {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+function authHeaders(): Record<string, string> {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 async function getJson<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`);
+  const res = await fetch(`${BASE}${path}`, { headers: authHeaders() });
   if (!res.ok) throw new Error(`GET ${path} → ${res.status} ${res.statusText}`);
   return (await res.json()) as T;
 }
+
+async function postJson<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`POST ${path} → ${res.status} ${res.statusText}`);
+  return (await res.json()) as T;
+}
+
+// --- Domain data ----------------------------------------------------------
+// Temporary identity until the logged-in user is threaded into matches
+// (needs onboarding: join community + save skills). See setConnection note.
+export const DEMO_VIEWER_ID = "00000000-0000-0000-0000-0000000000a1";
+export const DEMO_COMMUNITY_ID = "00000000-0000-0000-0000-0000000000c1";
 
 export interface SkillOption {
   id: string;
@@ -37,4 +66,17 @@ export function fetchMatches(): Promise<Person[]> {
     community: DEMO_COMMUNITY_ID,
   });
   return getJson<Person[]>(`/api/matches?${q.toString()}`);
+}
+
+// --- Auth (magic link) ----------------------------------------------------
+export function apiRequestMagicLink(email: string): Promise<{ ok: true }> {
+  return postJson("/api/auth/request", { email });
+}
+
+export function apiVerifyMagicLink(token: string): Promise<{ token: string; user: AuthUser }> {
+  return postJson("/api/auth/verify", { token });
+}
+
+export function apiMe(): Promise<AuthUser> {
+  return getJson<AuthUser>("/api/auth/me");
 }

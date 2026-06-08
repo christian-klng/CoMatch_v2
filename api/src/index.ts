@@ -2,6 +2,7 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { health } from "./routes/health.js";
+import { auth } from "./routes/auth.js";
 import { skills } from "./routes/skills.js";
 import { communities } from "./routes/communities.js";
 import { matches } from "./routes/matches.js";
@@ -11,6 +12,7 @@ const app = new Hono();
 app.use("*", cors({ origin: process.env.CORS_ORIGIN ?? "*" }));
 
 app.route("/health", health);
+app.route("/api/auth", auth);
 app.route("/api/skills", skills);
 app.route("/api/communities", communities);
 app.route("/api/matches", matches);

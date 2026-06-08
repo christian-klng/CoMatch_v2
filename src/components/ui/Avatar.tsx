@@ -7,27 +7,46 @@ const sizes = {
   xl: "h-24 w-24",
 };
 
+function initials(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
 export function Avatar({
   src,
   name,
   size = "md",
   className,
 }: {
-  src: string;
+  src?: string;
   name: string;
   size?: keyof typeof sizes;
   className?: string;
 }) {
-  return (
-    <img
-      src={src}
-      alt={name}
-      loading="lazy"
-      className={cn(
-        "rounded-full object-cover ring-2 ring-surface shadow-sm",
-        sizes[size],
-        className
-      )}
-    />
+  const base = cn(
+    "rounded-full object-cover ring-2 ring-surface shadow-sm",
+    sizes[size],
+    className,
   );
+
+  if (!src) {
+    // No photo (e.g. fresh magic-link user) → initials placeholder.
+    return (
+      <div
+        aria-label={name}
+        className={cn(
+          base,
+          "flex items-center justify-center bg-brand-100 text-sm font-semibold text-brand-700",
+        )}
+      >
+        {initials(name) || "?"}
+      </div>
+    );
+  }
+
+  return <img src={src} alt={name} loading="lazy" className={base} />;
 }

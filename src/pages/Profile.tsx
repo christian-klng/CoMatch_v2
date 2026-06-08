@@ -5,23 +5,35 @@ import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { CURRENT_COMMUNITY } from "../lib/mockData";
+import { logout, useAuth } from "../lib/auth";
 import { IconArrowRight, IconUsers } from "../components/icons";
 
 export function Profile() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const displayName = user?.name ?? user?.email ?? "Du";
+  const subtitle = [user?.role, user?.company].filter(Boolean).join(" · ");
+
+  const signOut = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
+
   return (
     <>
       <ScreenHeader title="Profil" />
       <div className="space-y-4 px-5 py-5">
         <Card className="flex items-center gap-4 p-5">
           <Avatar
-            src="https://i.pravatar.cc/240?img=15"
-            name="Du"
+            src={user?.avatarUrl ?? undefined}
+            name={displayName}
             size="lg"
           />
           <div className="min-w-0">
-            <h2 className="font-semibold text-ink">Christian K.</h2>
-            <p className="text-sm text-muted">Founder · CoMatch</p>
+            <h2 className="truncate font-semibold text-ink">{displayName}</h2>
+            <p className="truncate text-sm text-muted">
+              {subtitle || "Profil noch nicht vervollständigt"}
+            </p>
             <button className="mt-1 text-sm font-medium text-brand-600">
               Profil bearbeiten
             </button>
@@ -57,11 +69,7 @@ export function Profile() {
           <Badge tone="neutral">CoMatch v0.1 · Dummy-Daten</Badge>
         </div>
 
-        <Button
-          variant="secondary"
-          fullWidth
-          onClick={() => navigate("/login")}
-        >
+        <Button variant="secondary" fullWidth onClick={signOut}>
           Abmelden
         </Button>
       </div>

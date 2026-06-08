@@ -2,6 +2,18 @@
 // Intentionally close to a future Postgres schema so the move from
 // mock data -> real API is mechanical, not a rewrite.
 
+/** The authenticated user (subset of the DB user row returned by /api/auth). */
+export interface AuthUser {
+  id: string;
+  email: string | null;
+  name: string | null;
+  role: string | null;
+  company?: string | null;
+  avatarUrl?: string | null;
+  bio?: string | null;
+  attributes: string[];
+}
+
 export type SkillKind = "seek" | "offer"; // "ich suche" | "ich kann
 
 export interface Skill {
