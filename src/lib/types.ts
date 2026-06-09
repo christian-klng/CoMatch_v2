@@ -12,6 +12,7 @@ export interface AuthUser {
   avatarUrl?: string | null;
   bio?: string | null;
   attributes: string[];
+  linkedinUrl?: string | null;
 }
 
 export type SkillKind = "seek" | "offer"; // "ich suche" | "ich kann

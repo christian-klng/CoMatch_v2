@@ -48,7 +48,8 @@ export function Scan() {
     try {
       await apiJoinCommunity(community.code);
       refreshCommunities();
-      navigate(isFirstCommunity ? "/skills" : "/matches");
+      // First join → LinkedIn step, then skills. Later joins skip straight to matches.
+      navigate(isFirstCommunity ? "/connect-linkedin" : "/matches");
     } catch {
       setError("Beitritt fehlgeschlagen. Bitte versuche es erneut.");
       setBusy(false);

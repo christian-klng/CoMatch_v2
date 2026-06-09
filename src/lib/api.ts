@@ -83,6 +83,18 @@ export function apiSaveMySkills(seeks: string[], offers: string[]): Promise<{ ok
   return sendJson<{ ok: true }>("PUT", "/api/me/skills", { seeks, offers });
 }
 
+/** Save the user's LinkedIn URL (consent required) and trigger a profile read.
+ *  `profileFetched` is false if Unipile isn't configured or the read failed. */
+export function apiSaveLinkedin(
+  url: string,
+  consent: boolean,
+): Promise<{ ok: true; profileFetched: boolean }> {
+  return sendJson<{ ok: true; profileFetched: boolean }>("POST", "/api/me/linkedin", {
+    url,
+    consent,
+  });
+}
+
 // --- Communities (membership) ---------------------------------------------
 /** Communities the current user belongs to. */
 export function apiMyCommunities(): Promise<Community[]> {

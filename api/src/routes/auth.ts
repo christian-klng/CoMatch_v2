@@ -88,7 +88,8 @@ auth.get("/me", requireAuth, async (c) => {
 async function getUser(id: string) {
   const { rows } = await pool.query(
     `select id, email, name, role, company,
-            avatar_url as "avatarUrl", bio, attributes
+            avatar_url as "avatarUrl", bio, attributes,
+            linkedin_url as "linkedinUrl"
        from users where id = $1`,
     [id],
   );

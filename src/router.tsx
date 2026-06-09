@@ -6,6 +6,7 @@ import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { VerifyMagicLink } from "./pages/VerifyMagicLink";
 import { Scan } from "./pages/Scan";
+import { LinkedinConnect } from "./pages/LinkedinConnect";
 import { Skills } from "./pages/Skills";
 import { Matches } from "./pages/Matches";
 import { MatchDetail } from "./pages/MatchDetail";
@@ -71,6 +72,7 @@ export const router = createBrowserRouter([
           {
             element: <RequireCommunity />,
             children: [
+              { path: "/connect-linkedin", element: <LinkedinConnect /> },
               { path: "/skills", element: <Skills /> },
               { path: "/matches", element: <Matches /> },
               { path: "/matches/:id", element: <MatchDetail /> },

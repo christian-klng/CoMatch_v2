@@ -55,6 +55,14 @@ export async function verifyMagicLink(token: string): Promise<void> {
   refreshCommunities(); // load memberships for the onboarding gate
 }
 
+/** Re-fetch the current user (e.g. after a profile change). */
+export function refreshUser(): void {
+  if (!getToken()) return;
+  apiMe()
+    .then((user) => set({ status: "authenticated", user }))
+    .catch(() => {});
+}
+
 export function logout(): void {
   clearToken();
   resetCommunities();

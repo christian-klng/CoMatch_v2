@@ -1,8 +1,23 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { pool } from "../db.js";
 import { type AuthEnv, requireAuth } from "../auth.js";
+import {
+  downloadImage,
+  fetchLinkedInProfile,
+  linkedinIdentifier,
+  unipileConfigured,
+} from "../unipile.js";
 
 export const me = new Hono<AuthEnv>();
+
+/** Public base URL of this API, derived from the proxy's forwarded headers so
+ *  we don't need to hardcode the domain (self-configuring, no stale value). */
+function apiBaseUrl(c: Context): string {
+  const proto = c.req.header("x-forwarded-proto") ?? "http";
+  const host = c.req.header("x-forwarded-host") ?? c.req.header("host") ?? "";
+  return `${proto}://${host}`;
+}
 
 // GET /api/me/skills → the logged-in user's seeks/offers as skill ids.
 me.get("/skills", requireAuth, async (c) => {
@@ -57,4 +72,65 @@ me.put("/skills", requireAuth, async (c) => {
   }
 
   return c.json({ ok: true });
+});
+
+// POST /api/me/linkedin { url, consent } → save the user's LinkedIn URL (only
+// with data-processing consent) and, if the URL is valid, read the profile via
+// Unipile, store it, and self-host the profile picture.
+me.post("/linkedin", requireAuth, async (c) => {
+  const userId = c.get("userId");
+  const body = await c.req
+    .json<{ url?: string; consent?: boolean }>()
+    .catch(() => ({}) as { url?: string; consent?: boolean });
+
+  if (body.consent !== true) {
+    return c.json({ error: "consent_required" }, 400);
+  }
+  const url = body.url?.trim();
+  if (!url) return c.json({ error: "url_required" }, 400);
+
+  const identifier = linkedinIdentifier(url);
+  if (!identifier) return c.json({ error: "invalid_linkedin_url" }, 400);
+
+  // Persist URL + consent immediately; the profile fetch can be retried later.
+  await pool.query(
+    `update users set linkedin_url = $2, linkedin_consent_at = now() where id = $1`,
+    [userId, url],
+  );
+
+  if (!unipileConfigured) {
+    return c.json({ ok: true, profileFetched: false, reason: "unipile_not_configured" });
+  }
+
+  try {
+    const profile = await fetchLinkedInProfile(identifier);
+
+    // Self-host the (temporary) LinkedIn picture so it doesn't expire on us.
+    let avatarUrl: string | null = null;
+    const picUrl = profile.profile_picture_url_large ?? profile.profile_picture_url;
+    if (picUrl) {
+      const img = await downloadImage(picUrl);
+      if (img) {
+        await pool.query(
+          `update users set avatar_data = $2, avatar_mime = $3 where id = $1`,
+          [userId, img.data, img.mime],
+        );
+        avatarUrl = `${apiBaseUrl(c)}/api/users/${userId}/avatar`;
+      }
+    }
+
+    await pool.query(
+      `update users set linkedin_profile = $2,
+              avatar_url = coalesce($3, avatar_url)
+         where id = $1`,
+      [userId, profile, avatarUrl],
+    );
+
+    return c.json({ ok: true, profileFetched: true });
+  } catch (err) {
+    // URL + consent are saved; surface that the profile read failed so the user
+    // can retry from their profile later.
+    console.error("[linkedin] profile fetch failed", err);
+    return c.json({ ok: true, profileFetched: false, reason: "fetch_failed" });
+  }
 });
