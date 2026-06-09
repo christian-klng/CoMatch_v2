@@ -52,7 +52,9 @@ export async function verifyMagicLink(token: string): Promise<void> {
   const { token: jwt, user } = await apiVerifyMagicLink(token);
   setToken(jwt);
   set({ status: "authenticated", user });
-  refreshCommunities(); // load memberships for the onboarding gate
+  // Await so the community gate has fresh memberships before the post-login
+  // redirect — otherwise it can bounce a returning user to /scan.
+  await refreshCommunities();
 }
 
 /** Re-fetch the current user (e.g. after a profile change). */

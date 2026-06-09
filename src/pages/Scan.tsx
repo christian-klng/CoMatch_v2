@@ -47,7 +47,9 @@ export function Scan() {
     setError(null);
     try {
       await apiJoinCommunity(community.code);
-      refreshCommunities();
+      // Await the refresh so the community gate sees the new membership before
+      // we navigate into a gated route (otherwise it bounces back to /scan).
+      await refreshCommunities();
       // First join → LinkedIn step, then skills. Later joins skip straight to matches.
       navigate(isFirstCommunity ? "/connect-linkedin" : "/matches");
     } catch {
