@@ -8,6 +8,7 @@ import {
   linkedinIdentifier,
   unipileConfigured,
 } from "../unipile.js";
+import { mistralConfigured, suggestSkills, type SkillSuggestions } from "../mistral.js";
 
 export const me = new Hono<AuthEnv>();
 
@@ -132,5 +133,44 @@ me.post("/linkedin", requireAuth, async (c) => {
     // can retry from their profile later.
     console.error("[linkedin] profile fetch failed", err);
     return c.json({ ok: true, profileFetched: false, reason: "fetch_failed" });
+  }
+});
+
+// GET /api/me/skill-suggestions → the user's stored AI suggestions (if any).
+me.get("/skill-suggestions", requireAuth, async (c) => {
+  const { rows } = await pool.query<{ skill_suggestions: SkillSuggestions | null }>(
+    `select skill_suggestions from users where id = $1`,
+    [c.get("userId")],
+  );
+  return c.json(rows[0]?.skill_suggestions ?? { seeks: [], offers: [] });
+});
+
+// POST /api/me/skill-suggestions → generate suggestions from the stored LinkedIn
+// profile via Mistral, store them, and return them.
+me.post("/skill-suggestions", requireAuth, async (c) => {
+  const userId = c.get("userId");
+  if (!mistralConfigured) return c.json({ error: "mistral_not_configured" }, 503);
+
+  const { rows } = await pool.query<{ linkedin_profile: unknown }>(
+    `select linkedin_profile from users where id = $1`,
+    [userId],
+  );
+  const profile = rows[0]?.linkedin_profile;
+  if (!profile) return c.json({ error: "no_profile" }, 400);
+
+  const catalog = (
+    await pool.query<{ id: string; label: string }>(`select id, label from skills`)
+  ).rows;
+
+  try {
+    const suggestions = await suggestSkills(profile, catalog);
+    await pool.query(`update users set skill_suggestions = $2 where id = $1`, [
+      userId,
+      suggestions,
+    ]);
+    return c.json(suggestions);
+  } catch (err) {
+    console.error("[skills] suggestion generation failed", err);
+    return c.json({ error: "generation_failed" }, 502);
   }
 });

@@ -95,6 +95,21 @@ export function apiSaveLinkedin(
   });
 }
 
+export interface SkillSuggestions {
+  seeks: string[];
+  offers: string[];
+}
+
+/** Generate AI skill suggestions from the stored LinkedIn profile (Mistral). */
+export function apiGenerateSkillSuggestions(): Promise<SkillSuggestions> {
+  return sendJson<SkillSuggestions>("POST", "/api/me/skill-suggestions");
+}
+
+/** The user's stored AI skill suggestions (catalog ids), if any. */
+export function apiGetSkillSuggestions(): Promise<SkillSuggestions> {
+  return getJson<SkillSuggestions>("/api/me/skill-suggestions");
+}
+
 // --- Communities (membership) ---------------------------------------------
 /** Communities the current user belongs to. */
 export function apiMyCommunities(): Promise<Community[]> {

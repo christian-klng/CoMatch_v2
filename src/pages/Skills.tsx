@@ -3,7 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { ScreenHeader } from "../components/AppShell";
 import { Button } from "../components/ui/Button";
 import { cn } from "../lib/cn";
-import { apiGetMySkills, apiSaveMySkills, fetchSkills, type SkillOption } from "../lib/api";
+import {
+  apiGetMySkills,
+  apiGetSkillSuggestions,
+  apiSaveMySkills,
+  fetchSkills,
+  type SkillOption,
+} from "../lib/api";
 import { IconArrowRight, IconGift, IconSearch, IconSparkles } from "../components/icons";
 
 type Mode = "seek" | "offer";
@@ -12,25 +18,33 @@ export function Skills() {
   const navigate = useNavigate();
   const [seeks, setSeeks] = useState<Set<string>>(new Set());
   const [offers, setOffers] = useState<Set<string>>(new Set());
+  const [suggSeeks, setSuggSeeks] = useState<Set<string>>(new Set());
+  const [suggOffers, setSuggOffers] = useState<Set<string>>(new Set());
   const [mode, setMode] = useState<Mode>("seek");
   const [catalog, setCatalog] = useState<SkillOption[]>([]);
   const [saving, setSaving] = useState(false);
 
-  // Controlled skill vocabulary + the user's previously saved selection.
+  // Catalog + the user's saved selection + AI suggestions from their LinkedIn
+  // profile. If nothing is saved yet (onboarding), pre-select the suggestions.
   useEffect(() => {
     fetchSkills()
       .then(setCatalog)
       .catch((err) => console.error("[skills] catalog load failed", err));
-    apiGetMySkills()
-      .then(({ seeks, offers }) => {
-        setSeeks(new Set(seeks));
-        setOffers(new Set(offers));
+    Promise.all([apiGetMySkills(), apiGetSkillSuggestions()])
+      .then(([saved, sugg]) => {
+        setSuggSeeks(new Set(sugg.seeks));
+        setSuggOffers(new Set(sugg.offers));
+        const savedEmpty = saved.seeks.length === 0 && saved.offers.length === 0;
+        setSeeks(new Set(savedEmpty ? sugg.seeks : saved.seeks));
+        setOffers(new Set(savedEmpty ? sugg.offers : saved.offers));
       })
-      .catch((err) => console.error("[skills] saved selection load failed", err));
+      .catch((err) => console.error("[skills] selection/suggestions load failed", err));
   }, []);
 
   const active = mode === "seek" ? seeks : offers;
   const setActive = mode === "seek" ? setSeeks : setOffers;
+  const activeSugg = mode === "seek" ? suggSeeks : suggOffers;
+  const hasSuggestions = suggSeeks.size > 0 || suggOffers.size > 0;
 
   const toggle = (id: string) => {
     setActive((prev) => {
@@ -90,16 +104,25 @@ export function Skills() {
           />
         </div>
 
+        {/* AI suggestion hint */}
+        {hasSuggestions && (
+          <p className="mb-3 text-[13px] leading-relaxed text-muted">
+            Die markierten Chips stammen aus deinem LinkedIn-Profil – passe sie
+            gern an.
+          </p>
+        )}
+
         {/* Chips */}
         <div className="flex flex-wrap gap-2">
           {catalog.map(({ id, label }) => {
             const on = active.has(id);
+            const suggested = activeSugg.has(id);
             return (
               <button
                 key={id}
                 onClick={() => toggle(id)}
                 className={cn(
-                  "rounded-full border px-3.5 py-2 text-sm font-medium transition-all active:scale-95",
+                  "relative rounded-full border px-3.5 py-2 text-sm font-medium transition-all active:scale-95",
                   on
                     ? mode === "seek"
                       ? "border-transparent bg-[var(--color-seek)] text-white shadow-sm"
@@ -108,6 +131,18 @@ export function Skills() {
                 )}
               >
                 {label}
+                {suggested && (
+                  <span className="absolute -right-1 -top-1 flex h-2.5 w-2.5">
+                    <span
+                      className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"
+                      style={{ backgroundColor: "#f59e0b" }}
+                    />
+                    <span
+                      className="relative inline-flex h-2.5 w-2.5 rounded-full"
+                      style={{ backgroundColor: "#f59e0b" }}
+                    />
+                  </span>
+                )}
               </button>
             );
           })}
