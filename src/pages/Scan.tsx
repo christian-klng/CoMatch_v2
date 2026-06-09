@@ -5,13 +5,14 @@ import { QRScanner } from "../components/QRScanner";
 import { Button } from "../components/ui/Button";
 import { IconArrowRight, IconUsers } from "../components/icons";
 import { apiCommunityByCode, apiJoinCommunity } from "../lib/api";
-import { refreshCommunities } from "../lib/community";
+import { refreshCommunities, useMyCommunities } from "../lib/community";
 import type { Community } from "../lib/types";
 
 type Phase = "input" | "confirm";
 
 export function Scan() {
   const navigate = useNavigate();
+  const { communities } = useMyCommunities();
   const [phase, setPhase] = useState<Phase>("input");
   const [community, setCommunity] = useState<Community | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -37,15 +38,17 @@ export function Scan() {
     }
   };
 
-  // Join and go straight to skills — no separate "welcome" step.
+  // First community → onboarding (pick skills). Joining an additional one when
+  // already onboarded goes straight to the (now larger) match pool.
   const join = async () => {
     if (!community) return;
+    const isFirstCommunity = communities.length === 0;
     setBusy(true);
     setError(null);
     try {
       await apiJoinCommunity(community.code);
       refreshCommunities();
-      navigate("/skills");
+      navigate(isFirstCommunity ? "/skills" : "/matches");
     } catch {
       setError("Beitritt fehlgeschlagen. Bitte versuche es erneut.");
       setBusy(false);
@@ -84,7 +87,9 @@ export function Scan() {
                 Bereit zum Beitreten
               </h2>
               <p className="mt-1 text-sm text-muted">
-                Danach wählst du direkt, was du suchst.
+                {communities.length === 0
+                  ? "Danach wählst du direkt, was du suchst."
+                  : "Du erweiterst damit deinen Match-Pool."}
               </p>
             </div>
 
