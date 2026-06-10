@@ -19,10 +19,20 @@ export function LinkedinConnect() {
     setBusy(true);
     setError(null);
     try {
-      // Saves URL + consent and reads the LinkedIn profile (Unipile). The Skills
-      // screen then analyses that profile into chip suggestions, with a spinner.
-      await apiSaveLinkedin(url.trim(), consent);
-      navigate("/skills");
+      // Saves URL + consent and reads the LinkedIn profile (Unipile). Only move
+      // on once the profile was actually loaded — so a typo'd URL is caught here
+      // and the user can correct it, instead of landing on an empty Skills page.
+      const res = await apiSaveLinkedin(url.trim(), consent);
+      if (res.profileFetched) {
+        navigate("/skills");
+        return;
+      }
+      setError(
+        res.reason === "unipile_not_configured"
+          ? "Der LinkedIn-Import ist gerade nicht verfügbar. Du kannst trotzdem fortfahren und deine Skills selbst wählen."
+          : "Wir konnten dein LinkedIn-Profil nicht laden. Prüfe deine URL (z. B. linkedin.com/in/deinname) und versuche es erneut – oder fahre ohne LinkedIn fort.",
+      );
+      setBusy(false);
     } catch (err) {
       if (err instanceof ApiError && err.status === 400) {
         setError("Bitte gib eine gültige LinkedIn-URL ein (z. B. linkedin.com/in/deinname).");

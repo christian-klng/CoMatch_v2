@@ -84,15 +84,18 @@ export function apiSaveMySkills(seeks: string[], offers: string[]): Promise<{ ok
 }
 
 /** Save the user's LinkedIn URL (consent required) and trigger a profile read.
- *  `profileFetched` is false if Unipile isn't configured or the read failed. */
+ *  `profileFetched` is false if the read failed; `reason` says why
+ *  (`fetch_failed` = profile not found/unreachable, `unipile_not_configured`
+ *  = import disabled server-side). */
 export function apiSaveLinkedin(
   url: string,
   consent: boolean,
-): Promise<{ ok: true; profileFetched: boolean }> {
-  return sendJson<{ ok: true; profileFetched: boolean }>("POST", "/api/me/linkedin", {
-    url,
-    consent,
-  });
+): Promise<{ ok: true; profileFetched: boolean; reason?: string }> {
+  return sendJson<{ ok: true; profileFetched: boolean; reason?: string }>(
+    "POST",
+    "/api/me/linkedin",
+    { url, consent },
+  );
 }
 
 export interface SkillSuggestions {
