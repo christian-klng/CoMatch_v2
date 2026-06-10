@@ -8,38 +8,49 @@ const MODEL = process.env.MISTRAL_MODEL ?? "mistral-medium-latest";
 
 export const mistralConfigured = Boolean(API_KEY);
 
-export interface CatalogSkill {
-  id: string;
-  label: string;
-}
-
 export interface SkillSuggestions {
   seeks: string[];
   offers: string[];
 }
 
-/** Suggest 4-6 seeks and 4-6 offers for a LinkedIn profile, restricted to the
- *  controlled catalog. Returns only valid catalog ids. Throws on API errors. */
+/**
+ * Suggest skill *labels* (free text — no fixed catalog) for a LinkedIn profile.
+ * Two sources are blended:
+ *   - grounded in the profile (what the person can do / is looking for), and
+ *   - the community pool, applied INVERSELY to spark matches: things others
+ *     SEEK become suggested "offers"; things others OFFER become suggested
+ *     "seeks". Existing pool labels are reused verbatim so matching connects.
+ * Returns labels (not ids); the caller canonicalises them. Throws on API errors.
+ */
 export async function suggestSkills(
   profile: unknown,
-  catalog: CatalogSkill[],
+  poolSeeks: string[],
+  poolOffers: string[],
 ): Promise<SkillSuggestions> {
   if (!mistralConfigured) throw new Error("Mistral is not configured");
 
-  const validIds = new Set(catalog.map((c) => c.id));
-  const catalogList = catalog.map((c) => `${c.id}: ${c.label}`).join("\n");
+  const poolList = (xs: string[]) =>
+    xs.length ? xs.map((x) => `- ${x}`).join("\n") : "(noch keine)";
 
   const system =
     "Du unterstützt eine Matching-App für Gründer:innen und Fachleute. Aus einem " +
-    "LinkedIn-Profil leitest du passende Skills ab — ausschließlich aus dem " +
-    "vorgegebenen Katalog. Antworte immer als JSON-Objekt.";
+    "LinkedIn-Profil und dem Pool anderer Nutzer leitest du passende Skills ab. " +
+    "Skills sind kurze deutsche Substantiv-Phrasen (z. B. \"Frontend-Entwicklung\", " +
+    "\"Smart Contracts\", \"Fundraising\"). Antworte immer als JSON-Objekt.";
   const userMsg =
-    `Skill-Katalog (id: label):\n${catalogList}\n\n` +
     `LinkedIn-Profil (JSON):\n${JSON.stringify(profile).slice(0, 8000)}\n\n` +
-    `Wähle 4-6 "offers" (was die Person kann/anbietet, abgeleitet aus Erfahrung ` +
-    `und Skills) und 4-6 "seeks" (was die Person in einem Gründer-/Netzwerk-` +
-    `Kontext plausibel sucht). Verwende AUSSCHLIESSLICH ids aus dem Katalog. ` +
-    `Antworte als JSON: {"seeks":["id",...],"offers":["id",...]}.`;
+    `Andere Nutzer SUCHEN bereits (für invers abgeleitete "offers" wiederverwenden):\n` +
+    `${poolList(poolSeeks)}\n\n` +
+    `Andere Nutzer BIETEN bereits (für invers abgeleitete "seeks" wiederverwenden):\n` +
+    `${poolList(poolOffers)}\n\n` +
+    `Erzeuge zwei Listen mit je 6-8 Skill-Labels:\n` +
+    `- "offers" = was die Person laut Profil kann/anbietet, PLUS passende Labels aus ` +
+    `"Andere SUCHEN" (invers — so findet sie, wer sie braucht).\n` +
+    `- "seeks" = was die Person laut Profil sucht/braucht, PLUS passende Labels aus ` +
+    `"Andere BIETEN" (invers).\n` +
+    `Wenn ein passendes Label im Pool existiert, übernimm es WORTGLEICH; sonst erfinde ` +
+    `ein neues, kurzes Label aus dem Profil. Keine ids, nur Labels. ` +
+    `Antworte als JSON: {"seeks":["label",...],"offers":["label",...]}.`;
 
   const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
     method: "POST",
@@ -55,7 +66,7 @@ export async function suggestSkills(
       ],
       response_format: { type: "json_object" },
       temperature: 0.3,
-      max_tokens: 400,
+      max_tokens: 500,
     }),
   });
 
@@ -76,10 +87,23 @@ export async function suggestSkills(
     parsed = {};
   }
 
-  const clean = (arr: unknown): string[] =>
-    Array.isArray(arr)
-      ? [...new Set(arr.filter((x): x is string => typeof x === "string" && validIds.has(x)))].slice(0, 6)
-      : [];
+  // Keep non-empty string labels, dedup case-insensitively, cap at 8. The
+  // caller canonicalises these labels into skill rows/ids.
+  const clean = (arr: unknown): string[] => {
+    if (!Array.isArray(arr)) return [];
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const x of arr) {
+      if (typeof x !== "string") continue;
+      const label = x.trim().replace(/\s+/g, " ");
+      const key = label.toLowerCase();
+      if (!label || seen.has(key)) continue;
+      seen.add(key);
+      out.push(label);
+      if (out.length === 8) break;
+    }
+    return out;
+  };
 
   return { seeks: clean(parsed.seeks), offers: clean(parsed.offers) };
 }

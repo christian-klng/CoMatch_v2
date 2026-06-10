@@ -9,6 +9,7 @@ import {
   unipileConfigured,
 } from "../unipile.js";
 import { mistralConfigured, suggestSkills, type SkillSuggestions } from "../mistral.js";
+import { canonicalizeLabels } from "../skillcatalog.js";
 
 export const me = new Hono<AuthEnv>();
 
@@ -160,7 +161,8 @@ me.get("/skill-suggestions", requireAuth, async (c) => {
 });
 
 // POST /api/me/skill-suggestions → generate suggestions from the stored LinkedIn
-// profile via Mistral, store them, and return them.
+// profile + the community pool (inverse) via Mistral, canonicalise the labels
+// into skill ids (creating new skills as needed), store and return them.
 me.post("/skill-suggestions", requireAuth, async (c) => {
   const userId = c.get("userId");
   if (!mistralConfigured) return c.json({ error: "mistral_not_configured" }, 503);
@@ -172,12 +174,39 @@ me.post("/skill-suggestions", requireAuth, async (c) => {
   const profile = rows[0]?.linkedin_profile;
   if (!profile) return c.json({ error: "no_profile" }, 400);
 
-  const catalog = (
-    await pool.query<{ id: string; label: string }>(`select id, label from skills`)
+  // Pool of skill labels from users sharing ANY community with the viewer
+  // (same candidate set as matches.ts), split by kind, most common first. Fed
+  // inversely into the prompt so the suggestions are likely to produce matches.
+  const poolRows = (
+    await pool.query<{ kind: "seek" | "offer"; label: string }>(
+      `select us.kind, s.label
+         from user_skills us
+         join skills s on s.id = us.skill_id
+        where us.user_id in (
+          select distinct m.user_id
+            from community_members m
+           where m.user_id <> $1
+             and m.community_id in (
+               select community_id from community_members where user_id = $1
+             )
+        )
+        group by us.kind, s.label
+        order by count(*) desc
+        limit 50`,
+      [userId],
+    )
   ).rows;
+  const poolSeeks = poolRows.filter((r) => r.kind === "seek").map((r) => r.label).slice(0, 25);
+  const poolOffers = poolRows.filter((r) => r.kind === "offer").map((r) => r.label).slice(0, 25);
 
   try {
-    const suggestions = await suggestSkills(profile, catalog);
+    const labels = await suggestSkills(profile, poolSeeks, poolOffers);
+    // Free-text labels → canonical skill ids (new skills inserted on the fly).
+    const [seeks, offers] = await Promise.all([
+      canonicalizeLabels(labels.seeks),
+      canonicalizeLabels(labels.offers),
+    ]);
+    const suggestions: SkillSuggestions = { seeks, offers };
     await pool.query(`update users set skill_suggestions = $2 where id = $1`, [
       userId,
       suggestions,
