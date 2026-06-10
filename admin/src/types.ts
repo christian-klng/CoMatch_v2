@@ -8,3 +8,14 @@ export interface AdminCommunity {
   published: boolean;
   createdAt: string;
 }
+
+export interface AdminMember {
+  id: string;
+  name: string;
+  email?: string | null;
+  role: string;
+  company?: string | null;
+  joinedAt: string;
+  /** How many communities this user belongs to (delete removes them everywhere). */
+  communityCount: number;
+}

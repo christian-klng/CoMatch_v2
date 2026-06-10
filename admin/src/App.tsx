@@ -6,11 +6,13 @@ import {
   listCommunities,
   updateCommunity,
 } from "./api";
+import { CommunityDetail } from "./CommunityDetail";
 
 export function App() {
   const [items, setItems] = useState<AdminCommunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const [name, setName] = useState("");
   const [context, setContext] = useState("");
@@ -69,6 +71,11 @@ export function App() {
     }
   };
 
+  const selected = items.find((c) => c.id === selectedId);
+  if (selected) {
+    return <CommunityDetail community={selected} onBack={() => setSelectedId(null)} />;
+  }
+
   return (
     <div className="page">
       <header className="head">
@@ -116,7 +123,11 @@ export function App() {
           <div className="list">
             {items.map((c) => (
               <div key={c.id} className="row">
-                <div className="row-main">
+                <button
+                  className="row-main row-link"
+                  onClick={() => setSelectedId(c.id)}
+                  title="Mitglieder anzeigen"
+                >
                   <div className="row-title">
                     <span className="cname">{c.name}</span>
                     {c.published ? (
@@ -126,8 +137,8 @@ export function App() {
                     )}
                   </div>
                   {c.context && <p className="muted small">{c.context}</p>}
-                  <p className="faint small">{c.memberCount} Mitglieder</p>
-                </div>
+                  <p className="faint small">{c.memberCount} Mitglieder ›</p>
+                </button>
 
                 <div className="code-box">
                   <span className="code-label">Beitritts-Code</span>
