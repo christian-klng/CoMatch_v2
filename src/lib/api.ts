@@ -100,14 +100,21 @@ export interface SkillSuggestions {
   offers: string[];
 }
 
+/** Stored suggestions plus status: whether a LinkedIn profile is ready to
+ *  analyse, and whether suggestions have already been generated. */
+export interface SkillSuggestionState extends SkillSuggestions {
+  profileReady: boolean;
+  generated: boolean;
+}
+
 /** Generate AI skill suggestions from the stored LinkedIn profile (Mistral). */
 export function apiGenerateSkillSuggestions(): Promise<SkillSuggestions> {
   return sendJson<SkillSuggestions>("POST", "/api/me/skill-suggestions");
 }
 
-/** The user's stored AI skill suggestions (catalog ids), if any. */
-export function apiGetSkillSuggestions(): Promise<SkillSuggestions> {
-  return getJson<SkillSuggestions>("/api/me/skill-suggestions");
+/** The user's stored AI skill suggestions (catalog ids) plus generation status. */
+export function apiGetSkillSuggestions(): Promise<SkillSuggestionState> {
+  return getJson<SkillSuggestionState>("/api/me/skill-suggestions");
 }
 
 // --- Communities (membership) ---------------------------------------------

@@ -136,13 +136,27 @@ me.post("/linkedin", requireAuth, async (c) => {
   }
 });
 
-// GET /api/me/skill-suggestions → the user's stored AI suggestions (if any).
+// GET /api/me/skill-suggestions → the user's stored AI suggestions plus status:
+//   profileReady — a LinkedIn profile has been read and can be analysed
+//   generated    — suggestions have already been produced (don't regenerate)
+// The Skills screen uses these to decide whether to trigger generation itself.
 me.get("/skill-suggestions", requireAuth, async (c) => {
-  const { rows } = await pool.query<{ skill_suggestions: SkillSuggestions | null }>(
-    `select skill_suggestions from users where id = $1`,
+  const { rows } = await pool.query<{
+    skill_suggestions: SkillSuggestions | null;
+    has_profile: boolean;
+  }>(
+    `select skill_suggestions, (linkedin_profile is not null) as has_profile
+       from users where id = $1`,
     [c.get("userId")],
   );
-  return c.json(rows[0]?.skill_suggestions ?? { seeks: [], offers: [] });
+  const row = rows[0];
+  const suggestions = row?.skill_suggestions ?? { seeks: [], offers: [] };
+  return c.json({
+    seeks: suggestions.seeks,
+    offers: suggestions.offers,
+    profileReady: Boolean(row?.has_profile),
+    generated: row?.skill_suggestions != null,
+  });
 });
 
 // POST /api/me/skill-suggestions → generate suggestions from the stored LinkedIn

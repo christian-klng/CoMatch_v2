@@ -11,15 +11,25 @@ const ACCOUNT_ID = process.env.UNIPILE_ACCOUNT_ID; // the connected LinkedIn acc
 
 export const unipileConfigured = Boolean(DSN && API_KEY && ACCOUNT_ID);
 
-/** Extract the LinkedIn public identifier from a profile URL. Returns null if
- *  the input isn't a recognisable linkedin.com/in/<handle> URL. */
+/** Extract the LinkedIn public identifier from user input. Accepts a full URL
+ *  (with/without https + www), or just the bare handle (optionally prefixed
+ *  with "in/"). Returns null if the input isn't a recognisable handle — a typed
+ *  name like "Christian Klang" (has a space) is rejected on purpose. */
 export function linkedinIdentifier(raw: string): string | null {
-  const match = raw.trim().match(/linkedin\.com\/in\/([^/?#\s]+)/i);
-  if (!match) return null;
+  const s = raw.trim();
+  const fromUrl = s.match(/linkedin\.com\/in\/([^/?#\s]+)/i);
+  const candidate = fromUrl
+    ? fromUrl[1]
+    : // Bare handle, optionally as "in/handle" or "/in/handle"; reject anything
+      // that still looks like a URL/domain or contains whitespace.
+      !s.includes(".com") && /^(?:\/?in\/)?[\w\-%.]+\/?$/i.test(s)
+      ? s.replace(/^\/?in\//i, "").replace(/\/$/, "")
+      : null;
+  if (!candidate) return null;
   try {
-    return decodeURIComponent(match[1]);
+    return decodeURIComponent(candidate);
   } catch {
-    return match[1];
+    return candidate;
   }
 }
 

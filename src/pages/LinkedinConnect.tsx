@@ -3,14 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { ScreenHeader } from "../components/AppShell";
 import { Button } from "../components/ui/Button";
 import { IconArrowRight, IconLink, IconSparkles } from "../components/icons";
-import { apiGenerateSkillSuggestions, apiSaveLinkedin, ApiError } from "../lib/api";
+import { apiSaveLinkedin, ApiError } from "../lib/api";
 
 export function LinkedinConnect() {
   const navigate = useNavigate();
   const [url, setUrl] = useState("");
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const canSubmit = url.trim().length > 0 && consent && !busy;
@@ -20,15 +19,9 @@ export function LinkedinConnect() {
     setBusy(true);
     setError(null);
     try {
-      const { profileFetched } = await apiSaveLinkedin(url.trim(), consent);
-      if (profileFetched) {
-        // Read the profile with AI and pre-fill skill suggestions. Best-effort:
-        // if it fails, the user just lands on an empty skills screen.
-        setAnalyzing(true);
-        await apiGenerateSkillSuggestions().catch((err) =>
-          console.error("[linkedin] suggestion generation failed", err),
-        );
-      }
+      // Saves URL + consent and reads the LinkedIn profile (Unipile). The Skills
+      // screen then analyses that profile into chip suggestions, with a spinner.
+      await apiSaveLinkedin(url.trim(), consent);
       navigate("/skills");
     } catch (err) {
       if (err instanceof ApiError && err.status === 400) {
@@ -37,7 +30,6 @@ export function LinkedinConnect() {
         setError("Verbinden fehlgeschlagen. Bitte versuche es erneut.");
       }
       setBusy(false);
-      setAnalyzing(false);
     }
   };
 
@@ -47,11 +39,7 @@ export function LinkedinConnect() {
         <ScreenHeader title="Verbinde mit LinkedIn" subtitle="Schneller starten – optional" />
         <div className="flex flex-col items-center justify-center gap-4 px-5 py-20 text-center">
           <div className="h-9 w-9 animate-spin rounded-full border-2 border-brand-200 border-t-brand-600" />
-          <p className="text-sm text-muted">
-            {analyzing
-              ? "KI analysiert dein Profil und schlägt passende Skills vor…"
-              : "Dein LinkedIn-Profil wird geladen…"}
-          </p>
+          <p className="text-sm text-muted">Dein LinkedIn-Profil wird geladen…</p>
         </div>
       </>
     );
@@ -82,7 +70,7 @@ export function LinkedinConnect() {
               <input
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="linkedin.com/in/deinname"
+                placeholder="linkedin.com/in/deinname – oder nur deinname"
                 inputMode="url"
                 autoCapitalize="none"
                 className="h-11 flex-1 bg-transparent text-[15px] placeholder:text-faint focus:outline-none"
