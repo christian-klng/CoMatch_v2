@@ -8,6 +8,7 @@ import { Notice } from "../components/ui/Notice";
 import { Spinner } from "../components/ui/Spinner";
 import { IconArrowRight, IconLink, IconSparkles } from "../components/icons";
 import { apiSaveLinkedin, ApiError } from "../lib/api";
+import { refreshUser } from "../lib/auth";
 
 export function LinkedinConnect() {
   const { t } = useTranslation();
@@ -29,6 +30,9 @@ export function LinkedinConnect() {
       // and the user can correct it, instead of landing on an empty Skills page.
       const res = await apiSaveLinkedin(url.trim(), consent);
       if (res.profileFetched) {
+        // The import just replaced the placeholder name and avatar server-side
+        // — refresh the in-memory user so Profile shows them without a reload.
+        refreshUser();
         navigate("/skills");
         return;
       }
