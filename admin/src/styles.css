@@ -271,3 +271,16 @@ input[type="text"],
   height: 36px;
   flex-shrink: 0;
 }
+
+/* Shareable join deep link in the community detail header. */
+.join-link .code-inline {
+  letter-spacing: 0;
+  font-weight: 600;
+  word-break: break-all;
+}
+.btn.small {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 12px;
+  vertical-align: middle;
+}

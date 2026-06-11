@@ -2,6 +2,12 @@ import { useEffect, useState } from "react";
 import type { AdminCommunity, AdminMember } from "./types";
 import { addMember, deleteMember, listMembers, seedMembers } from "./api";
 
+// Public app base URL for the shareable join deep link (/join/<code>).
+// Overridable via build arg for other environments.
+const APP_URL = (
+  import.meta.env.VITE_APP_URL ?? "https://comatch.startup-incubator.berlin"
+).replace(/\/$/, "");
+
 export function CommunityDetail({
   community,
   onBack,
@@ -16,6 +22,19 @@ export function CommunityDetail({
 
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const joinUrl = `${APP_URL}/join/${community.code}`;
+
+  const copyJoinUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(joinUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API unavailable (e.g. non-HTTPS) — the link is selectable text.
+    }
+  };
 
   const reload = () => {
     setLoading(true);
@@ -82,6 +101,16 @@ export function CommunityDetail({
         <p className="muted">
           Beitritts-Code <span className="code-inline">{community.code}</span> ·{" "}
           {members.length} Mitglieder
+        </p>
+        <p className="muted small join-link">
+          Join-Link: <span className="code-inline">{joinUrl}</span>{" "}
+          <button className="btn small" onClick={copyJoinUrl}>
+            {copied ? "Kopiert ✓" : "Kopieren"}
+          </button>
+        </p>
+        <p className="faint small">
+          Per E-Mail teilen oder als QR-Code drucken — Teilnehmende landen damit
+          direkt in dieser Community (Registrierung inklusive).
         </p>
       </header>
 
