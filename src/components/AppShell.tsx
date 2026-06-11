@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "../lib/cn";
-import { IconQr, IconSparkles, IconUser, IconUsers } from "./icons";
+import { IconSparkles, IconUser, IconUsers } from "./icons";
 
 /**
  * Mobile-first shell. On desktop it renders inside a centered, phone-width
@@ -19,9 +19,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
+// /scan is reachable via the profile screen ("Beitreten") and as the automatic
+// onboarding landing page — it doesn't need a permanent nav slot.
 const NAV = [
   { to: "/matches", label: "Matches", Icon: IconSparkles },
-  { to: "/scan", label: "Scannen", Icon: IconQr },
   { to: "/skills", label: "Skills", Icon: IconUsers },
   { to: "/profile", label: "Profil", Icon: IconUser },
 ];
