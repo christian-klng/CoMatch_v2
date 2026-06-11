@@ -3,7 +3,7 @@ import type { Person } from "../lib/types";
 import { Card } from "./ui/Card";
 import { Badge } from "./ui/Badge";
 import { Avatar } from "./ui/Avatar";
-import { ConnectAction } from "./ConnectAction";
+import { ConnectionBadge } from "./ConnectAction";
 import { ScoreRing } from "./ScoreRing";
 import { IconGift, IconSearch } from "./icons";
 
@@ -60,7 +60,7 @@ export function MatchCard({ person }: { person: Person }) {
             <Badge key={a}>{a}</Badge>
           ))}
         </div>
-        <ConnectAction person={person} />
+        <ConnectionBadge status={person.connection} />
       </div>
     </Card>
   );

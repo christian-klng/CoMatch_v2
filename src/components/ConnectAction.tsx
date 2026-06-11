@@ -1,9 +1,36 @@
 import { useState } from "react";
-import type { Person } from "../lib/types";
+import type { ConnectionStatus, Person } from "../lib/types";
 import { acceptConnection, requestConnection } from "../lib/matchStore";
 import { Button } from "./ui/Button";
 import { Badge } from "./ui/Badge";
 import { IconCheck, IconClock, IconLink } from "./icons";
+
+/** Read-only connection status for the match list — actions (request/accept)
+ *  live on the person's detail page only. Renders nothing for "none". */
+export function ConnectionBadge({ status }: { status: ConnectionStatus }) {
+  switch (status) {
+    case "connected":
+      return (
+        <Badge tone="success">
+          <IconCheck width={13} height={13} /> Verbunden
+        </Badge>
+      );
+    case "requested":
+      return (
+        <Badge tone="warning">
+          <IconClock width={13} height={13} /> Anfrage gesendet
+        </Badge>
+      );
+    case "incoming":
+      return (
+        <Badge tone="brand">
+          <IconLink width={13} height={13} /> Anfrage erhalten
+        </Badge>
+      );
+    default:
+      return null;
+  }
+}
 
 /**
  * Hybrid matching action surface.

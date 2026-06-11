@@ -21,7 +21,13 @@ export function Matches() {
     communities.length === 1
       ? communities[0].name
       : `${communities.length} Communities`;
-  const sorted = [...matches].sort((a, b) => b.matchScore - a.matchScore);
+  // Incoming requests first (they want something from you — don't bury them
+  // under high scores), then best matches.
+  const sorted = [...matches].sort(
+    (a, b) =>
+      Number(b.connection === "incoming") - Number(a.connection === "incoming") ||
+      b.matchScore - a.matchScore,
+  );
   const incoming = sorted.filter((m) => m.connection === "incoming");
 
   return (
