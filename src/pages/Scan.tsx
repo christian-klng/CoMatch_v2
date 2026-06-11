@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { ScreenHeader } from "../components/AppShell";
 import { QRScanner } from "../components/QRScanner";
 import { Button } from "../components/ui/Button";
+import { Card } from "../components/ui/Card";
+import { Notice } from "../components/ui/Notice";
 import { IconArrowRight, IconUsers } from "../components/icons";
 import { apiCommunityByCode, apiJoinCommunity } from "../lib/api";
 import { refreshCommunities, useMyCommunities } from "../lib/community";
@@ -75,11 +77,7 @@ export function Scan() {
             </p>
             <QRScanner onResult={resolve} />
             {busy && <p className="text-center text-sm text-muted">Code wird geprüft…</p>}
-            {error && (
-              <p className="rounded-lg bg-danger-soft px-4 py-3 text-sm text-danger">
-                {error}
-              </p>
-            )}
+            {error && <Notice>{error}</Notice>}
           </div>
         )}
 
@@ -96,7 +94,7 @@ export function Scan() {
               </p>
             </div>
 
-            <div className="rounded-xl border border-border bg-surface p-5 text-left shadow-sm">
+            <Card className="p-5 text-left">
               <div className="flex items-start gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
                   <IconUsers width={22} height={22} />
@@ -111,13 +109,9 @@ export function Scan() {
                   </p>
                 </div>
               </div>
-            </div>
+            </Card>
 
-            {error && (
-              <p className="rounded-lg bg-danger-soft px-4 py-3 text-sm text-danger">
-                {error}
-              </p>
-            )}
+            {error && <Notice>{error}</Notice>}
 
             <div className="space-y-2">
               <Button fullWidth size="lg" disabled={busy} onClick={join}>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AuthShell } from "./AuthShell";
+import { Spinner } from "../components/ui/Spinner";
 import { verifyMagicLink } from "../lib/auth";
 
 type State = "verifying" | "error";
@@ -45,7 +46,7 @@ export function VerifyMagicLink() {
     >
       {state === "verifying" ? (
         <div className="flex justify-center py-6">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-200 border-t-brand-600" />
+          <Spinner size="sm" />
         </div>
       ) : (
         <p className="text-sm text-muted">

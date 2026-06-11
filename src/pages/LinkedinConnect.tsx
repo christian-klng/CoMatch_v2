@@ -2,6 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ScreenHeader } from "../components/AppShell";
 import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/Input";
+import { Notice } from "../components/ui/Notice";
+import { Spinner } from "../components/ui/Spinner";
 import { IconArrowRight, IconLink, IconSparkles } from "../components/icons";
 import { apiSaveLinkedin, ApiError } from "../lib/api";
 
@@ -48,7 +51,7 @@ export function LinkedinConnect() {
       <>
         <ScreenHeader title="Verbinde mit LinkedIn" subtitle="Schneller starten – optional" />
         <div className="flex flex-col items-center justify-center gap-4 px-5 py-20 text-center">
-          <div className="h-9 w-9 animate-spin rounded-full border-2 border-brand-200 border-t-brand-600" />
+          <Spinner />
           <p className="text-sm text-muted">Dein LinkedIn-Profil wird geladen…</p>
         </div>
       </>
@@ -73,27 +76,22 @@ export function LinkedinConnect() {
             </p>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-ink-soft">Deine LinkedIn-URL</label>
-            <div className="flex items-center gap-2 rounded-md border border-border bg-surface px-3 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20">
-              <IconLink width={18} height={18} className="shrink-0 text-faint" />
-              <input
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="linkedin.com/in/deinname – oder nur deinname"
-                inputMode="url"
-                autoCapitalize="none"
-                className="h-11 flex-1 bg-transparent text-[15px] placeholder:text-faint focus:outline-none"
-              />
-            </div>
-          </div>
+          <Input
+            label="Deine LinkedIn-URL"
+            leftIcon={<IconLink width={18} height={18} />}
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="linkedin.com/in/deinname – oder nur deinname"
+            inputMode="url"
+            autoCapitalize="none"
+          />
 
           <label className="flex items-start gap-2.5 text-[13px] leading-relaxed text-ink-soft">
             <input
               type="checkbox"
               checked={consent}
               onChange={(e) => setConsent(e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 rounded border-border text-brand-600 focus:ring-brand-500/30"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-brand-600"
             />
             <span>
               Ich stimme zu, dass mein öffentliches LinkedIn-Profil ausgelesen und
@@ -101,9 +99,7 @@ export function LinkedinConnect() {
             </span>
           </label>
 
-          {error && (
-            <p className="rounded-lg bg-danger-soft px-4 py-3 text-sm text-danger">{error}</p>
-          )}
+          {error && <Notice>{error}</Notice>}
 
           <div className="space-y-2">
             <Button fullWidth size="lg" disabled={!canSubmit} onClick={connect}>

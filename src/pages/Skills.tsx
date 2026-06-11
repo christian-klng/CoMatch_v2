@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ScreenHeader } from "../components/AppShell";
 import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/Input";
+import { Spinner } from "../components/ui/Spinner";
 import { cn } from "../lib/cn";
 import {
   apiCreateSkill,
@@ -148,7 +150,7 @@ export function Skills() {
       <div className="px-5 py-5 pb-40">
         {phase === "analyzing" ? (
           <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
-            <div className="h-9 w-9 animate-spin rounded-full border-2 border-brand-200 border-t-brand-600" />
+            <Spinner />
             <p className="text-sm text-muted">
               KI liest dein LinkedIn-Profil und schlägt passende Skills vor…
             </p>
@@ -176,38 +178,38 @@ export function Skills() {
             </div>
 
             {/* Free-text entry for the active mode */}
-            <div className="mb-4 flex items-center gap-2 rounded-xl border border-border bg-surface px-3 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20">
-              <input
-                value={custom}
-                onChange={(e) => setCustom(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    void addCustom();
-                  }
-                }}
-                placeholder={
-                  mode === "seek"
-                    ? "Eigenen Eintrag hinzufügen – was suchst du?"
-                    : "Eigenen Eintrag hinzufügen – was kannst du?"
+            <Input
+              className="mb-4"
+              value={custom}
+              onChange={(e) => setCustom(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void addCustom();
                 }
-                maxLength={80}
-                className="h-11 flex-1 bg-transparent text-[15px] placeholder:text-faint focus:outline-none"
-              />
-              <button
-                onClick={() => void addCustom()}
-                disabled={!custom.trim() || addingCustom}
-                aria-label="Skill hinzufügen"
-                className={cn(
-                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white transition-all active:scale-95 disabled:opacity-40",
-                  mode === "seek"
-                    ? "bg-[var(--color-seek)]"
-                    : "bg-[var(--color-offer)]",
-                )}
-              >
-                <IconPlus width={16} height={16} />
-              </button>
-            </div>
+              }}
+              placeholder={
+                mode === "seek"
+                  ? "Eigenen Eintrag hinzufügen – was suchst du?"
+                  : "Eigenen Eintrag hinzufügen – was kannst du?"
+              }
+              maxLength={80}
+              rightSlot={
+                <button
+                  onClick={() => void addCustom()}
+                  disabled={!custom.trim() || addingCustom}
+                  aria-label="Skill hinzufügen"
+                  className={cn(
+                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white transition-all active:scale-95 disabled:opacity-40",
+                    mode === "seek"
+                      ? "bg-[var(--color-seek)]"
+                      : "bg-[var(--color-offer)]",
+                  )}
+                >
+                  <IconPlus width={16} height={16} />
+                </button>
+              }
+            />
 
             {/* AI suggestion hint */}
             {hasSuggestions && (
@@ -258,7 +260,7 @@ export function Skills() {
 
       {/* Sticky CTA — hidden while the LLM is still analyzing the profile. */}
       {phase !== "analyzing" && (
-      <div className="safe-bottom fixed inset-x-0 bottom-[68px] z-20 mx-auto w-full max-w-[440px] border-t border-border bg-bg/90 px-5 py-3 backdrop-blur-md">
+      <div className="fixed inset-x-0 bottom-[calc(68px+env(safe-area-inset-bottom))] z-20 mx-auto w-full max-w-[440px] border-t border-border bg-surface/90 px-5 py-3 backdrop-blur-md">
         <Button fullWidth size="lg" disabled={total === 0 || saving} onClick={save}>
           {total === 0
             ? "Wähle mindestens einen Skill"

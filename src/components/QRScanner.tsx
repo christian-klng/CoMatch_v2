@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Scanner, type IDetectedBarcode } from "@yudiel/react-qr-scanner";
 import { Button } from "./ui/Button";
+import { Card } from "./ui/Card";
+import { Input } from "./ui/Input";
 import { IconCamera } from "./icons";
 
 /**
@@ -51,11 +53,7 @@ export function QRScanner({
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <div className="relative h-52 w-52">
               {(["tl", "tr", "bl", "br"] as const).map((c) => (
-                <span
-                  key={c}
-                  className={cornerClass(c)}
-                  style={{ borderColor: "var(--color-brand-400)" }}
-                />
+                <span key={c} className={cornerClass(c)} />
               ))}
             </div>
           </div>
@@ -63,26 +61,27 @@ export function QRScanner({
       </div>
 
       {/* Manual fallback */}
-      <div className="rounded-xl border border-border bg-surface p-4">
+      <Card className="p-4">
         <p className="mb-2 text-sm font-medium text-ink-soft">
           Kein QR-Code zur Hand?
         </p>
-        <div className="flex gap-2">
-          <input
-            value={manual}
-            onChange={(e) => setManual(e.target.value)}
-            placeholder="Community-Code eingeben"
-            className="h-10 flex-1 rounded-md border border-border bg-surface px-3 text-sm placeholder:text-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-          />
+        <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <Input
+              value={manual}
+              onChange={(e) => setManual(e.target.value)}
+              placeholder="Community-Code eingeben"
+              inputMode="numeric"
+            />
+          </div>
           <Button
-            size="sm"
             disabled={!manual.trim()}
             onClick={() => onResult(manual.trim())}
           >
             Beitreten
           </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

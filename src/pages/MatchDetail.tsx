@@ -3,6 +3,7 @@ import { useMatch } from "../lib/matchStore";
 import { cn } from "../lib/cn";
 import { Avatar } from "../components/ui/Avatar";
 import { Badge } from "../components/ui/Badge";
+import { Card } from "../components/ui/Card";
 import { ConnectAction } from "../components/ConnectAction";
 import { ScoreRing } from "../components/ScoreRing";
 import {
@@ -139,7 +140,7 @@ function SkillBlock({
 }) {
   const color = tone === "seek" ? "var(--color-seek)" : "var(--color-offer)";
   return (
-    <div className="rounded-xl border border-border bg-surface p-4 shadow-sm">
+    <Card className="p-4">
       <p
         className="mb-2.5 flex items-center gap-2 text-sm font-semibold"
         style={{ color }}
@@ -154,6 +155,6 @@ function SkillBlock({
           </Badge>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }

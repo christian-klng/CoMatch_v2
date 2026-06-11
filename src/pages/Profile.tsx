@@ -5,6 +5,8 @@ import { Avatar } from "../components/ui/Avatar";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
+import { Input } from "../components/ui/Input";
+import { Notice } from "../components/ui/Notice";
 import { logout, refreshUser, useAuth } from "../lib/auth";
 import { useMyCommunities } from "../lib/community";
 import { apiSaveLinkedin, apiUpdateProfile, ApiError } from "../lib/api";
@@ -145,26 +147,26 @@ function ProfileCard({ user }: { user: AuthUser | null }) {
 
       {editing && (
         <div className="mt-4 space-y-3 border-t border-border pt-4">
-          <ProfileField
+          <Input
             label="Name"
             value={form.name}
-            onChange={(name) => setForm((f) => ({ ...f, name }))}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             placeholder="Dein Name"
           />
-          <ProfileField
+          <Input
             label="Rolle"
             value={form.role}
-            onChange={(role) => setForm((f) => ({ ...f, role }))}
+            onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
             placeholder="z. B. Frontend-Entwicklerin"
           />
-          <ProfileField
+          <Input
             label="Unternehmen"
             value={form.company}
-            onChange={(company) => setForm((f) => ({ ...f, company }))}
+            onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
             placeholder="z. B. ACME GmbH"
           />
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-muted">
+            <span className="mb-1.5 block text-sm font-medium text-ink-soft">
               Über mich
             </span>
             <textarea
@@ -173,11 +175,11 @@ function ProfileCard({ user }: { user: AuthUser | null }) {
               placeholder="Ein paar Sätze über dich – sichtbar auf deiner Match-Detailseite."
               rows={3}
               maxLength={500}
-              className="w-full resize-none rounded-md border border-border bg-surface px-3 py-2 text-[15px] placeholder:text-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              className="w-full resize-none rounded-md border border-border bg-surface px-3.5 py-2 text-[15px] text-ink shadow-xs transition-colors placeholder:text-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
             />
           </label>
 
-          {error && <p className="text-sm text-danger">{error}</p>}
+          {error && <Notice>{error}</Notice>}
 
           <div className="flex gap-2">
             <Button size="sm" disabled={!form.name.trim() || busy} onClick={save}>
@@ -190,30 +192,6 @@ function ProfileCard({ user }: { user: AuthUser | null }) {
         </div>
       )}
     </Card>
-  );
-}
-
-function ProfileField({
-  label,
-  value,
-  onChange,
-  placeholder,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-medium text-muted">{label}</span>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="h-10 w-full rounded-md border border-border bg-surface px-3 text-[15px] placeholder:text-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-      />
-    </label>
   );
 }
 
@@ -282,16 +260,13 @@ function LinkedinCard({
         )}
       </div>
 
-      <div className="flex items-center gap-2 rounded-md border border-border bg-surface px-3 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20">
-        <input
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="linkedin.com/in/deinname"
-          inputMode="url"
-          autoCapitalize="none"
-          className="h-10 flex-1 bg-transparent text-[15px] placeholder:text-faint focus:outline-none"
-        />
-      </div>
+      <Input
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        placeholder="linkedin.com/in/deinname"
+        inputMode="url"
+        autoCapitalize="none"
+      />
 
       {dirty && url.trim().length > 0 && (
         <label className="flex items-start gap-2.5 text-[13px] leading-relaxed text-ink-soft">
@@ -299,7 +274,7 @@ function LinkedinCard({
             type="checkbox"
             checked={consent}
             onChange={(e) => setConsent(e.target.checked)}
-            className="mt-0.5 h-4 w-4 shrink-0 rounded border-border text-brand-600 focus:ring-brand-500/30"
+            className="mt-0.5 h-4 w-4 shrink-0 accent-brand-600"
           />
           <span>
             Ich stimme zu, dass mein öffentliches LinkedIn-Profil ausgelesen,
@@ -309,9 +284,7 @@ function LinkedinCard({
       )}
 
       {status && (
-        <p className={status.ok ? "text-sm text-success" : "text-sm text-danger"}>
-          {status.text}
-        </p>
+        <Notice tone={status.ok ? "success" : "danger"}>{status.text}</Notice>
       )}
 
       <Button size="sm" disabled={!canSave} onClick={save}>

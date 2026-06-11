@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import { AppShell } from "./components/AppShell";
+import { Spinner as SpinnerIcon } from "./components/ui/Spinner";
 import { useAuth } from "./lib/auth";
 import { useMyCommunities } from "./lib/community";
 import { useMySkillsStatus } from "./lib/skills";
@@ -17,7 +18,7 @@ import { Styleguide } from "./pages/Styleguide";
 function Spinner() {
   return (
     <div className="flex min-h-full items-center justify-center bg-bg">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-200 border-t-brand-600" />
+      <SpinnerIcon size="sm" />
     </div>
   );
 }

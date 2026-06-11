@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { AuthShell } from "./AuthShell";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
+import { Notice } from "../components/ui/Notice";
 import { requestMagicLink } from "../lib/auth";
 import { MagicLinkSent } from "./Login";
 import { IconArrowRight } from "../components/icons";
@@ -53,7 +54,7 @@ export function Register() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          {error && <p className="text-sm text-danger">{error}</p>}
+          {error && <Notice>{error}</Notice>}
           <Button type="submit" fullWidth size="lg" disabled={busy || !email.trim()}>
             {busy ? "Sende Link…" : "Login-Link senden"}
             {!busy && <IconArrowRight width={18} height={18} />}

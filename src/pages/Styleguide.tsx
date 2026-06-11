@@ -4,7 +4,7 @@ import { Input } from "../components/ui/Input";
 import { Badge } from "../components/ui/Badge";
 import { Card } from "../components/ui/Card";
 import { ScoreRing } from "../components/ScoreRing";
-import { IconArrowLeft, IconLogo } from "../components/icons";
+import { IconArrowLeft, IconLink, IconLogo, IconPlus } from "../components/icons";
 
 export function Styleguide() {
   return (
@@ -31,10 +31,10 @@ export function Styleguide() {
       <Section title="Marken-Farben">
         <Swatches
           items={[
-            ["brand-600", "#2563eb", true],
-            ["brand-700", "#1d4fd7", true],
-            ["brand-100", "#dbe7fe", false],
-            ["brand-50", "#eff5ff", false],
+            ["brand-600", true],
+            ["brand-700", true],
+            ["brand-100", false],
+            ["brand-50", false],
           ]}
         />
       </Section>
@@ -42,8 +42,8 @@ export function Styleguide() {
       <Section title="Skill-Akzente">
         <Swatches
           items={[
-            ["seek (ich suche)", "var(--color-seek)", true],
-            ["offer (ich kann)", "var(--color-offer)", true],
+            ["seek", true, "seek (ich suche)"],
+            ["offer", true, "offer (ich kann)"],
           ]}
         />
       </Section>
@@ -51,19 +51,27 @@ export function Styleguide() {
       <Section title="Neutrale / Text">
         <Swatches
           items={[
-            ["ink", "#0f172a", true],
-            ["ink-soft", "#334155", true],
-            ["muted", "#64748b", true],
-            ["border", "#e2e8f0", false],
-            ["bg", "#f8fafc", false],
+            ["ink", true],
+            ["ink-soft", true],
+            ["muted", true],
+            ["border", false],
+            ["bg", false],
           ]}
         />
       </Section>
 
       <Section title="Semantik">
-        <div className="flex flex-wrap gap-2">
+        <Swatches
+          items={[
+            ["success", true],
+            ["warning", true],
+            ["danger", true],
+          ]}
+        />
+        <div className="mt-4 flex flex-wrap gap-2">
           <Badge tone="success">Success</Badge>
           <Badge tone="warning">Warning</Badge>
+          <Badge tone="danger">Danger</Badge>
           <Badge tone="brand">Brand</Badge>
           <Badge tone="neutral">Neutral</Badge>
           <Badge tone="seek">Suche</Badge>
@@ -79,7 +87,10 @@ export function Styleguide() {
           <p className="text-[22px] font-semibold tracking-tight text-ink">
             Heading · 22 / Semibold
           </p>
-          <p className="text-base text-ink-soft">Body · 16 / Regular</p>
+          <p className="text-xl font-semibold text-ink">
+            Subheading · 20 / Semibold
+          </p>
+          <p className="text-[15px] text-ink-soft">Body · 15 / Regular</p>
           <p className="text-sm text-muted">Caption · 14 / Muted</p>
           <p className="text-xs text-faint">Micro · 12 / Faint</p>
         </div>
@@ -104,6 +115,23 @@ export function Styleguide() {
         <div className="max-w-sm space-y-3">
           <Input label="E-Mail" placeholder="du@firma.de" />
           <Input label="Mit Hinweis" placeholder="…" hint="Hilfetext darunter." />
+          <Input
+            label="Mit Icon"
+            leftIcon={<IconLink width={18} height={18} />}
+            placeholder="linkedin.com/in/deinname"
+          />
+          <Input
+            label="Mit Aktion"
+            placeholder="Eigenen Eintrag hinzufügen…"
+            rightSlot={
+              <button
+                aria-label="Hinzufügen"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white"
+              >
+                <IconPlus width={16} height={16} />
+              </button>
+            }
+          />
         </div>
       </Section>
 
@@ -155,18 +183,25 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Swatches({ items }: { items: [string, string, boolean][] }) {
+/** Swatches read straight from the CSS tokens so they can never drift from
+ *  index.css. Tuple: [token, darkText?, displayLabel?]. */
+function Swatches({ items }: { items: [string, boolean, string?][] }) {
   return (
     <div className="flex flex-wrap gap-3">
-      {items.map(([name, value, dark]) => (
-        <div key={name} className="w-28">
+      {items.map(([token, dark, label]) => (
+        <div key={token} className="w-28">
           <div
             className="flex h-16 items-end rounded-lg border border-border p-2 text-[11px] font-medium"
-            style={{ background: value, color: dark ? "#fff" : "#0f172a" }}
+            style={{
+              background: `var(--color-${token})`,
+              color: dark ? "#fff" : "var(--color-ink)",
+            }}
           >
-            {name}
+            {label ?? token}
           </div>
-          <span className="mt-1 block text-[11px] text-muted">{value}</span>
+          <span className="mt-1 block text-[11px] text-muted">
+            --color-{token}
+          </span>
         </div>
       ))}
     </div>
