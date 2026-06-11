@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ScreenHeader } from "../components/AppShell";
@@ -9,6 +9,7 @@ import { Notice } from "../components/ui/Notice";
 import { IconArrowRight, IconUsers } from "../components/icons";
 import { apiCommunityByCode, apiJoinCommunity } from "../lib/api";
 import { refreshCommunities, useMyCommunities } from "../lib/community";
+import { consumePendingJoinCode } from "../lib/joinCode";
 import type { Community } from "../lib/types";
 
 type Phase = "input" | "confirm";
@@ -41,6 +42,14 @@ export function Scan() {
       setBusy(false);
     }
   };
+
+  // A /join/<code> deep link parks its code in localStorage — pick it up once
+  // and jump straight to the confirmation step (consume = no re-trigger).
+  useEffect(() => {
+    const pending = consumePendingJoinCode();
+    if (pending) void resolve(pending);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // First community → onboarding (pick skills). Joining an additional one when
   // already onboarded goes straight to the (now larger) match pool.

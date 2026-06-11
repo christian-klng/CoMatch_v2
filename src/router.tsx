@@ -13,6 +13,7 @@ import { Skills } from "./pages/Skills";
 import { Matches } from "./pages/Matches";
 import { MatchDetail } from "./pages/MatchDetail";
 import { Profile } from "./pages/Profile";
+import { JoinCommunity } from "./pages/JoinCommunity";
 import { Styleguide } from "./pages/Styleguide";
 
 function Spinner() {
@@ -104,6 +105,8 @@ export const router = createBrowserRouter([
   },
 
   // Standalone
+  // Deep link from shared/printed QR codes — public, routes by auth state.
+  { path: "/join/:code", element: <JoinCommunity /> },
   { path: "/styleguide", element: <Styleguide /> },
 
   { path: "*", element: <Navigate to="/login" replace /> },

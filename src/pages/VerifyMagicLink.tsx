@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { AuthShell } from "./AuthShell";
 import { Spinner } from "../components/ui/Spinner";
 import { verifyMagicLink } from "../lib/auth";
+import { hasPendingJoinCode } from "../lib/joinCode";
 
 type State = "verifying" | "error";
 
@@ -25,8 +26,12 @@ export function VerifyMagicLink() {
       return;
     }
     verifyMagicLink(token)
-      // Land on matches; the community gate bounces new users to /scan.
-      .then(() => navigate("/matches", { replace: true }))
+      // A pending /join/<code> deep link wins (Scan picks the code up and
+      // shows the join confirmation); otherwise land on matches — the
+      // community gate bounces new users to /scan anyway.
+      .then(() =>
+        navigate(hasPendingJoinCode() ? "/scan" : "/matches", { replace: true }),
+      )
       .catch(() => setState("error"));
   }, [params, navigate]);
 
