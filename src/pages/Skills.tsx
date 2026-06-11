@@ -4,6 +4,7 @@ import { ScreenHeader } from "../components/AppShell";
 import { Button } from "../components/ui/Button";
 import { cn } from "../lib/cn";
 import {
+  apiCreateSkill,
   apiGenerateSkillSuggestions,
   apiGetMySkills,
   apiGetSkillSuggestions,
@@ -13,7 +14,7 @@ import {
   type SkillSuggestions,
 } from "../lib/api";
 import { refreshSkillsStatus } from "../lib/skills";
-import { IconArrowRight, IconGift, IconSearch } from "../components/icons";
+import { IconArrowRight, IconGift, IconPlus, IconSearch } from "../components/icons";
 
 type Mode = "seek" | "offer";
 
@@ -98,6 +99,29 @@ export function Skills() {
     });
   };
 
+  // Free-text entry: canonicalise via the API, add the chip to the catalog if
+  // it's new, and select it for the active mode.
+  const [custom, setCustom] = useState("");
+  const [addingCustom, setAddingCustom] = useState(false);
+
+  const addCustom = async () => {
+    const label = custom.trim();
+    if (!label || addingCustom) return;
+    setAddingCustom(true);
+    try {
+      const skill = await apiCreateSkill(label);
+      setCatalog((prev) =>
+        prev.some((s) => s.id === skill.id) ? prev : [...prev, skill],
+      );
+      setActive((prev) => new Set(prev).add(skill.id));
+      setCustom("");
+    } catch (err) {
+      console.error("[skills] custom skill add failed", err);
+    } finally {
+      setAddingCustom(false);
+    }
+  };
+
   const total = seeks.size + offers.size;
 
   const save = async () => {
@@ -149,6 +173,40 @@ export function Skills() {
                 count={offers.size}
                 tone="offer"
               />
+            </div>
+
+            {/* Free-text entry for the active mode */}
+            <div className="mb-4 flex items-center gap-2 rounded-xl border border-border bg-surface px-3 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20">
+              <input
+                value={custom}
+                onChange={(e) => setCustom(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void addCustom();
+                  }
+                }}
+                placeholder={
+                  mode === "seek"
+                    ? "Eigenen Eintrag hinzufügen – was suchst du?"
+                    : "Eigenen Eintrag hinzufügen – was kannst du?"
+                }
+                maxLength={80}
+                className="h-11 flex-1 bg-transparent text-[15px] placeholder:text-faint focus:outline-none"
+              />
+              <button
+                onClick={() => void addCustom()}
+                disabled={!custom.trim() || addingCustom}
+                aria-label="Skill hinzufügen"
+                className={cn(
+                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white transition-all active:scale-95 disabled:opacity-40",
+                  mode === "seek"
+                    ? "bg-[var(--color-seek)]"
+                    : "bg-[var(--color-offer)]",
+                )}
+              >
+                <IconPlus width={16} height={16} />
+              </button>
             </div>
 
             {/* AI suggestion hint */}

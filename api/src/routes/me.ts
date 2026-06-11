@@ -114,9 +114,13 @@ me.post("/linkedin", requireAuth, async (c) => {
     }
 
     // The real first name from LinkedIn replaces the random placeholder name.
+    // Clearing skill_suggestions makes the Skills screen re-analyse the fresh
+    // profile; the user's saved skill selection (user_skills) stays untouched —
+    // new suggestions only pre-select when nothing is saved yet.
     const firstName = profile.first_name?.trim() || null;
     await pool.query(
       `update users set linkedin_profile = $2,
+              skill_suggestions = null,
               avatar_url = coalesce($3, avatar_url),
               name = coalesce($4, name)
          where id = $1`,

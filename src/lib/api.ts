@@ -68,6 +68,11 @@ export function fetchSkills(): Promise<SkillOption[]> {
   return getJson<SkillOption[]>("/api/skills");
 }
 
+/** Create (or case-insensitively reuse) a skill from free text → canonical chip. */
+export function apiCreateSkill(label: string): Promise<SkillOption> {
+  return postJson<SkillOption>("/api/skills", { label });
+}
+
 /** Matches for the logged-in user, pooled across all their communities. */
 export function fetchMatches(): Promise<Person[]> {
   return getJson<Person[]>("/api/matches");
