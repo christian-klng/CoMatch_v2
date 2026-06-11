@@ -22,11 +22,17 @@ const RATE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 // POST /api/auth/request { email } → create/find user, email a magic link.
 // Passwordless: requesting a link for a new email signs the user up.
 auth.post("/request", async (c) => {
-  const body = await c.req.json<{ email?: string }>().catch(() => ({}) as { email?: string });
+  const body = await c.req
+    .json<{ email?: string; locale?: string }>()
+    .catch(() => ({}) as { email?: string; locale?: string });
   const email = body.email?.trim().toLowerCase();
   if (!email || !email.includes("@")) {
     return c.json({ error: "valid email required" }, 400);
   }
+  // The mail goes out before any session exists, so the client sends its UI
+  // language along. It's also recorded as the user's first-seen locale (an
+  // explicit later choice via PUT /api/me/locale is never overwritten).
+  const locale = body.locale === "en" ? "en" : "de";
 
   // Rate-limit before any DB write or mail send, so this endpoint can't be
   // abused to spam an inbox or to relay mail through our SMTP account.
@@ -44,10 +50,11 @@ auth.post("/request", async (c) => {
   // cards; a LinkedIn import later replaces it with the real first name. The
   // conflict branch leaves an existing user's name untouched.
   const { rows } = await pool.query<{ id: string }>(
-    `insert into users (email, name) values ($1, $2)
-     on conflict (email) do update set email = excluded.email
+    `insert into users (email, name, locale) values ($1, $2, $3)
+     on conflict (email) do update
+       set locale = coalesce(users.locale, excluded.locale)
      returning id`,
-    [email, randomFirstName()],
+    [email, randomFirstName(), locale],
   );
   const userId = rows[0].id;
 
@@ -58,7 +65,7 @@ auth.post("/request", async (c) => {
     [userId, hash, String(TOKEN_TTL_MINUTES)],
   );
 
-  await sendMagicLink(email, `${APP_URL}/auth/verify?token=${token}`);
+  await sendMagicLink(email, `${APP_URL}/auth/verify?token=${token}`, locale);
 
   // Generic response — never reveal whether the email already had an account.
   return c.json({ ok: true });

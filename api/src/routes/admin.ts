@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { pool } from "../db.js";
+import { mistralConfigured, translateSkillLabels } from "../mistral.js";
 
 // Lean community admin. NO AUTH YET — intentionally open for the single
 // pre-launch operator. Lock this behind an admin role + auth before any
@@ -217,4 +218,51 @@ admin.delete("/communities/:id/members/:userId", async (c) => {
   ]);
   if (!rowCount) return c.json({ error: "not_found" }, 404);
   return c.json({ ok: true });
+});
+
+// POST /api/admin/skills/translate → one-shot backfill: translate every skill
+// concept that has no English label yet (batched LLM calls). Idempotent —
+// rerunning only picks up whatever is still untranslated. Collisions (the
+// translation already names another concept) are skipped and reported.
+admin.post("/skills/translate", async (c) => {
+  if (!mistralConfigured) return c.json({ error: "mistral_not_configured" }, 503);
+
+  const { rows } = await pool.query<{ id: string; label: string }>(
+    `select id, label from skills where label_en is null order by label`,
+  );
+  if (rows.length === 0) return c.json({ translated: 0, skipped: 0, remaining: 0 });
+
+  let translated = 0;
+  let skipped = 0;
+  const BATCH = 40;
+  for (let i = 0; i < rows.length; i += BATCH) {
+    const batch = rows.slice(i, i + BATCH);
+    const translations = await translateSkillLabels(
+      batch.map((r) => r.label),
+      "en",
+    );
+    for (let j = 0; j < batch.length; j++) {
+      try {
+        const { rowCount } = await pool.query(
+          `update skills set label_en = $2 where id = $1 and label_en is null`,
+          [batch[j].id, translations[j]],
+        );
+        translated += rowCount ?? 0;
+      } catch (e: unknown) {
+        // Unique collision: the translation already names another concept.
+        if ((e as { code?: string })?.code !== "23505") throw e;
+        skipped++;
+        console.warn(
+          `[admin] label_en collision: "${batch[j].label}" → "${translations[j]}"`,
+        );
+      }
+    }
+  }
+
+  const remaining = (
+    await pool.query<{ n: number }>(
+      `select count(*)::int as n from skills where label_en is null`,
+    )
+  ).rows[0].n;
+  return c.json({ translated, skipped, remaining });
 });

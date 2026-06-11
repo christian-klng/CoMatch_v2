@@ -1,3 +1,4 @@
+import { currentLocale } from "../i18n";
 import type { AdminCommunity, AuthUser, Community, Person } from "./types";
 
 // Base URL of the API, baked in at build time via the VITE_API_URL build-arg.
@@ -61,21 +62,32 @@ const postJson = <T>(path: string, body: unknown) => sendJson<T>("POST", path, b
 // --- Domain data ----------------------------------------------------------
 export interface SkillOption {
   id: string;
+  /** German (canonical) label. */
   label: string;
+  /** English label; null until the concept has been translated. */
+  labelEn?: string | null;
+}
+
+/** Display label for the app's current language (EN falls back to German
+ *  while a concept's translation is still missing). */
+export function skillLabel(skill: SkillOption): string {
+  return currentLocale() === "en" ? (skill.labelEn ?? skill.label) : skill.label;
 }
 
 export function fetchSkills(): Promise<SkillOption[]> {
   return getJson<SkillOption[]>("/api/skills");
 }
 
-/** Create (or case-insensitively reuse) a skill from free text → canonical chip. */
+/** Create (or case-insensitively reuse) a skill from free text → canonical chip.
+ *  The current UI language tells the API which language the label is in. */
 export function apiCreateSkill(label: string): Promise<SkillOption> {
-  return postJson<SkillOption>("/api/skills", { label });
+  return postJson<SkillOption>("/api/skills", { label, lang: currentLocale() });
 }
 
-/** Matches for the logged-in user, pooled across all their communities. */
+/** Matches for the logged-in user, pooled across all their communities.
+ *  Skill labels come back localized for the current UI language. */
 export function fetchMatches(): Promise<Person[]> {
-  return getJson<Person[]>("/api/matches");
+  return getJson<Person[]>(`/api/matches?lang=${currentLocale()}`);
 }
 
 /** The logged-in user's saved seeks/offers (catalog skill ids). */
@@ -130,9 +142,12 @@ export interface SkillSuggestionState extends SkillSuggestions {
   generated: boolean;
 }
 
-/** Generate AI skill suggestions from the stored LinkedIn profile (Mistral). */
+/** Generate AI skill suggestions from the stored LinkedIn profile (Mistral),
+ *  in the app's current UI language. */
 export function apiGenerateSkillSuggestions(): Promise<SkillSuggestions> {
-  return sendJson<SkillSuggestions>("POST", "/api/me/skill-suggestions");
+  return sendJson<SkillSuggestions>("POST", "/api/me/skill-suggestions", {
+    lang: currentLocale(),
+  });
 }
 
 /** The user's stored AI skill suggestions (catalog ids) plus generation status. */
@@ -199,7 +214,8 @@ export function apiAdminDeleteCommunity(id: string): Promise<{ ok: true }> {
 
 // --- Auth (magic link) ----------------------------------------------------
 export function apiRequestMagicLink(email: string): Promise<{ ok: true }> {
-  return postJson("/api/auth/request", { email });
+  // The UI language rides along so the magic-link email arrives in it.
+  return postJson("/api/auth/request", { email, locale: currentLocale() });
 }
 
 export function apiVerifyMagicLink(token: string): Promise<{ token: string; user: AuthUser }> {

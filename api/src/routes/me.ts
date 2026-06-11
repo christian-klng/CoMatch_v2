@@ -199,12 +199,17 @@ me.get("/skill-suggestions", requireAuth, async (c) => {
   });
 });
 
-// POST /api/me/skill-suggestions → generate suggestions from the stored LinkedIn
-// profile + the community pool (inverse) via Mistral, canonicalise the labels
-// into skill ids (creating new skills as needed), store and return them.
+// POST /api/me/skill-suggestions { lang? } → generate suggestions from the
+// stored LinkedIn profile + the community pool (inverse) via Mistral, in the
+// user's UI language; canonicalise the labels into concept ids (creating new
+// bilingual concepts as needed), store and return them.
 me.post("/skill-suggestions", requireAuth, async (c) => {
   const userId = c.get("userId");
   if (!mistralConfigured) return c.json({ error: "mistral_not_configured" }, 503);
+  const body = await c.req
+    .json<{ lang?: string }>()
+    .catch(() => ({}) as { lang?: string });
+  const lang = body.lang === "en" ? ("en" as const) : ("de" as const);
 
   const { rows } = await pool.query<{ linkedin_profile: unknown }>(
     `select linkedin_profile from users where id = $1`,
@@ -216,9 +221,12 @@ me.post("/skill-suggestions", requireAuth, async (c) => {
   // Pool of skill labels from users sharing ANY community with the viewer
   // (same candidate set as matches.ts), split by kind, most common first. Fed
   // inversely into the prompt so the suggestions are likely to produce matches.
+  // Labels are localized for the user — verbatim reuse still resolves to the
+  // same concept because canonicalisation matches both language columns.
+  const labelExpr = lang === "en" ? "coalesce(s.label_en, s.label)" : "s.label";
   const poolRows = (
     await pool.query<{ kind: "seek" | "offer"; label: string }>(
-      `select us.kind, s.label
+      `select us.kind, ${labelExpr} as label
          from user_skills us
          join skills s on s.id = us.skill_id
         where us.user_id in (
@@ -229,7 +237,7 @@ me.post("/skill-suggestions", requireAuth, async (c) => {
                select community_id from community_members where user_id = $1
              )
         )
-        group by us.kind, s.label
+        group by us.kind, ${labelExpr}
         order by count(*) desc
         limit 50`,
       [userId],
@@ -239,11 +247,11 @@ me.post("/skill-suggestions", requireAuth, async (c) => {
   const poolOffers = poolRows.filter((r) => r.kind === "offer").map((r) => r.label).slice(0, 25);
 
   try {
-    const labels = await suggestSkills(profile, poolSeeks, poolOffers);
-    // Free-text labels → canonical skill ids (new skills inserted on the fly).
+    const labels = await suggestSkills(profile, poolSeeks, poolOffers, lang);
+    // Free-text labels → canonical concept ids (new concepts inserted on the fly).
     const [seeks, offers] = await Promise.all([
-      canonicalizeLabels(labels.seeks),
-      canonicalizeLabels(labels.offers),
+      canonicalizeLabels(labels.seeks, lang),
+      canonicalizeLabels(labels.offers, lang),
     ]);
     const suggestions: SkillSuggestions = { seeks, offers };
     await pool.query(`update users set skill_suggestions = $2 where id = $1`, [

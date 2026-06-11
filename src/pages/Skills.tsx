@@ -13,6 +13,7 @@ import {
   apiGetSkillSuggestions,
   apiSaveMySkills,
   fetchSkills,
+  skillLabel,
   type SkillOption,
   type SkillSuggestions,
 } from "../lib/api";
@@ -217,7 +218,8 @@ export function Skills() {
 
             {/* Chips */}
             <div className="flex flex-wrap gap-2">
-              {catalog.map(({ id, label }) => {
+              {catalog.map((skill) => {
+                const { id } = skill;
                 const on = active.has(id);
                 const suggested = activeSugg.has(id);
                 return (
@@ -233,7 +235,7 @@ export function Skills() {
                         : "border-border bg-surface text-ink-soft hover:border-border-strong"
                     )}
                   >
-                    {label}
+                    {skillLabel(skill)}
                     {suggested && (
                       <span className="absolute -right-1 -top-1 flex h-2.5 w-2.5">
                         <span

@@ -19,9 +19,16 @@ function maskName(name: string | null): string {
 matches.get("/", requireAuth, async (c) => {
   const viewerId = c.get("userId");
 
+  // Skill labels are localized for the viewer (?lang=en → English variant,
+  // falling back to German while untranslated). The SAME expression is used
+  // for the viewer's and the candidates' skills, so the label-set matching
+  // below stays consistent — matching itself is per concept, not per language.
+  const labelExpr =
+    c.req.query("lang") === "en" ? "coalesce(s.label_en, s.label)" : "s.label";
+
   // 1. Viewer's own skills.
   const mine = await pool.query<{ kind: "seek" | "offer"; label: string }>(
-    `select us.kind, s.label
+    `select us.kind, ${labelExpr} as label
        from user_skills us join skills s on s.id = us.skill_id
       where us.user_id = $1`,
     [viewerId],
@@ -50,7 +57,7 @@ matches.get("/", requireAuth, async (c) => {
   // 3. Their skills, in one round-trip.
   const skillRows = (
     await pool.query<{ user_id: string; kind: "seek" | "offer"; label: string }>(
-      `select us.user_id, us.kind, s.label
+      `select us.user_id, us.kind, ${labelExpr} as label
          from user_skills us join skills s on s.id = us.skill_id
         where us.user_id = any($1)`,
       [ids],
