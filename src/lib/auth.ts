@@ -9,6 +9,8 @@ import {
   setToken,
 } from "./api";
 import { refreshCommunities, resetCommunities } from "./community";
+import { refreshSkillsStatus, resetSkillsStatus } from "./skills";
+import { resetMatches } from "./matchStore";
 
 export type AuthStatus = "loading" | "authenticated" | "anonymous";
 
@@ -52,9 +54,9 @@ export async function verifyMagicLink(token: string): Promise<void> {
   const { token: jwt, user } = await apiVerifyMagicLink(token);
   setToken(jwt);
   set({ status: "authenticated", user });
-  // Await so the community gate has fresh memberships before the post-login
-  // redirect — otherwise it can bounce a returning user to /scan.
-  await refreshCommunities();
+  // Await so the gates have fresh state before the post-login redirect —
+  // otherwise they can bounce a returning user to /scan or /skills.
+  await Promise.all([refreshCommunities(), refreshSkillsStatus()]);
 }
 
 /** Re-fetch the current user (e.g. after a profile change). */
@@ -68,6 +70,8 @@ export function refreshUser(): void {
 export function logout(): void {
   clearToken();
   resetCommunities();
+  resetSkillsStatus();
+  resetMatches();
   set({ status: "anonymous", user: null });
 }
 

@@ -120,6 +120,23 @@ export function apiGetSkillSuggestions(): Promise<SkillSuggestionState> {
   return getJson<SkillSuggestionState>("/api/me/skill-suggestions");
 }
 
+// --- Connections ------------------------------------------------------------
+/** Request a connection to a user from the match pool. The server accepts
+ *  automatically if that user already has a pending request to us. */
+export function apiRequestConnection(
+  userId: string,
+): Promise<{ status: "requested" | "connected" }> {
+  return postJson<{ status: "requested" | "connected" }>("/api/connections", { userId });
+}
+
+/** Accept a pending incoming connection request from that user. */
+export function apiAcceptConnection(userId: string): Promise<{ status: "connected" }> {
+  return postJson<{ status: "connected" }>(
+    `/api/connections/${encodeURIComponent(userId)}/accept`,
+    {},
+  );
+}
+
 // --- Communities (membership) ---------------------------------------------
 /** Communities the current user belongs to. */
 export function apiMyCommunities(): Promise<Community[]> {

@@ -1,13 +1,26 @@
+import { useEffect } from "react";
 import { ScreenHeader } from "../components/AppShell";
 import { MatchCard } from "../components/MatchCard";
 import { Badge } from "../components/ui/Badge";
-import { useMatches, useMatchesStatus } from "../lib/matchStore";
-import { CURRENT_COMMUNITY } from "../lib/mockData";
+import { refreshMatches, useMatches, useMatchesStatus } from "../lib/matchStore";
+import { useMyCommunities } from "../lib/community";
 import { IconSparkles } from "../components/icons";
 
 export function Matches() {
   const matches = useMatches();
   const status = useMatchesStatus();
+  const { communities } = useMyCommunities();
+
+  // The pool can change while the app is open (new community, edited skills),
+  // so re-fetch on every visit; cached data stays visible meanwhile.
+  useEffect(() => {
+    void refreshMatches();
+  }, []);
+
+  const subtitle =
+    communities.length === 1
+      ? communities[0].name
+      : `${communities.length} Communities`;
   const sorted = [...matches].sort((a, b) => b.matchScore - a.matchScore);
   const incoming = sorted.filter((m) => m.connection === "incoming");
 
@@ -15,7 +28,7 @@ export function Matches() {
     <>
       <ScreenHeader
         title="Deine Matches"
-        subtitle={CURRENT_COMMUNITY.name}
+        subtitle={subtitle}
         right={
           <Badge tone="brand">
             <IconSparkles width={13} height={13} /> {sorted.length}

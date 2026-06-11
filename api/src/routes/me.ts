@@ -121,11 +121,14 @@ me.post("/linkedin", requireAuth, async (c) => {
       }
     }
 
+    // The real first name from LinkedIn replaces the random placeholder name.
+    const firstName = profile.first_name?.trim() || null;
     await pool.query(
       `update users set linkedin_profile = $2,
-              avatar_url = coalesce($3, avatar_url)
+              avatar_url = coalesce($3, avatar_url),
+              name = coalesce($4, name)
          where id = $1`,
-      [userId, profile, avatarUrl],
+      [userId, profile, avatarUrl, firstName],
     );
 
     return c.json({ ok: true, profileFetched: true });

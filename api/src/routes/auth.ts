@@ -8,6 +8,7 @@ import {
   requireAuth,
 } from "../auth.js";
 import { sendMagicLink } from "../mailer.js";
+import { randomFirstName } from "../names.js";
 import { clientIp, rateLimit } from "../ratelimit.js";
 
 export const auth = new Hono<AuthEnv>();
@@ -37,11 +38,14 @@ auth.post("/request", async (c) => {
     return c.json({ error: "rate_limited", retryAfter }, 429);
   }
 
+  // New users get a random first name so they are never anonymous on match
+  // cards; a LinkedIn import later replaces it with the real first name. The
+  // conflict branch leaves an existing user's name untouched.
   const { rows } = await pool.query<{ id: string }>(
-    `insert into users (email) values ($1)
+    `insert into users (email, name) values ($1, $2)
      on conflict (email) do update set email = excluded.email
      returning id`,
-    [email],
+    [email, randomFirstName()],
   );
   const userId = rows[0].id;
 

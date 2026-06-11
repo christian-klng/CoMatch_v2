@@ -45,9 +45,10 @@ export type ConnectionStatus = "none" | "requested" | "incoming" | "connected";
 export interface Person {
   id: string;
   name: string;
-  role: string;
+  /** Null until the user fills their profile (e.g. magic-link signup). */
+  role: string | null;
   company?: string;
-  avatarUrl: string;
+  avatarUrl: string | null;
   bio?: string;
   /** Attributes / tags shown on the card (gap: keep controlled, not free text). */
   attributes: string[];

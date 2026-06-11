@@ -97,7 +97,7 @@ export function Profile() {
         </Link>
 
         <div className="pt-2">
-          <Badge tone="neutral">CoMatch v0.1 · Dummy-Daten</Badge>
+          <Badge tone="neutral">CoMatch v0.1</Badge>
         </div>
 
         <Button variant="secondary" fullWidth onClick={signOut}>

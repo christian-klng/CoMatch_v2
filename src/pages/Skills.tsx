@@ -12,6 +12,7 @@ import {
   type SkillOption,
   type SkillSuggestions,
 } from "../lib/api";
+import { refreshSkillsStatus } from "../lib/skills";
 import { IconArrowRight, IconGift, IconSearch } from "../components/icons";
 
 type Mode = "seek" | "offer";
@@ -103,6 +104,9 @@ export function Skills() {
     setSaving(true);
     try {
       await apiSaveMySkills([...seeks], [...offers]);
+      // Await the refresh so the skills gate sees the new selection before we
+      // navigate into a gated route (otherwise it bounces back to /skills).
+      await refreshSkillsStatus();
       navigate("/matches");
     } catch (err) {
       console.error("[skills] save failed", err);

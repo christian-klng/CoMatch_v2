@@ -1,5 +1,6 @@
+import { useState } from "react";
 import type { Person } from "../lib/types";
-import { setConnection } from "../lib/matchStore";
+import { acceptConnection, requestConnection } from "../lib/matchStore";
 import { Button } from "./ui/Button";
 import { Badge } from "./ui/Badge";
 import { IconCheck, IconClock, IconLink } from "./icons";
@@ -15,6 +16,17 @@ export function ConnectAction({
   person: Person;
   size?: "sm" | "md";
 }) {
+  const [busy, setBusy] = useState(false);
+
+  const run = async (action: (id: string) => Promise<void>) => {
+    setBusy(true);
+    try {
+      await action(person.id);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   switch (person.connection) {
     case "connected":
       return (
@@ -30,10 +42,7 @@ export function ConnectAction({
       );
     case "incoming":
       return (
-        <Button
-          size={size}
-          onClick={() => setConnection(person.id, "connected")}
-        >
+        <Button size={size} disabled={busy} onClick={() => run(acceptConnection)}>
           <IconCheck width={16} height={16} /> Annehmen
         </Button>
       );
@@ -42,7 +51,8 @@ export function ConnectAction({
         <Button
           size={size}
           variant="secondary"
-          onClick={() => setConnection(person.id, "requested")}
+          disabled={busy}
+          onClick={() => run(requestConnection)}
         >
           <IconLink width={16} height={16} /> Verbinden
         </Button>

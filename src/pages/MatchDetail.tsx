@@ -55,7 +55,7 @@ export function MatchDetail() {
           </div>
 
           <h1 className="text-xl font-semibold text-ink">{person.name}</h1>
-          <p className="text-sm text-ink-soft">{person.role}</p>
+          {person.role && <p className="text-sm text-ink-soft">{person.role}</p>}
           {person.company && (
             <p className="text-sm text-muted">{person.company}</p>
           )}

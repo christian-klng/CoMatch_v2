@@ -1,10 +1,10 @@
 import { useSyncExternalStore } from "react";
 import type { ConnectionStatus, Person } from "./types";
-import { fetchMatches } from "./api";
+import { apiAcceptConnection, apiRequestConnection, fetchMatches } from "./api";
 
-// Minimal observable store (no dependency). Loads matches from the API once,
-// then serves them to components. The component-facing hooks are unchanged from
-// the mock-data version — only the source moved.
+// Minimal observable store (no dependency). Loads matches from the API and
+// serves them to components; refreshable because the pool changes (new
+// community, changed skills) and resettable on logout.
 export type LoadStatus = "loading" | "ready" | "error";
 
 let state: Person[] = [];
@@ -15,11 +15,12 @@ function emit() {
   listeners.forEach((l) => l());
 }
 
-let started = false;
-function ensureLoaded() {
-  if (started) return;
-  started = true;
-  fetchMatches()
+// Deduped: subscribe (first mount) and refreshMatches (visit effect) can fire
+// in the same tick — share one request instead of racing two.
+let inflight: Promise<void> | null = null;
+function load(): Promise<void> {
+  if (inflight) return inflight;
+  inflight = fetchMatches()
     .then((data) => {
       state = data;
       status = "ready";
@@ -29,14 +30,65 @@ function ensureLoaded() {
       console.error("[matches] load failed", err);
       status = "error";
       emit();
+    })
+    .finally(() => {
+      inflight = null;
     });
+  return inflight;
 }
 
-export function setConnection(id: string, next: ConnectionStatus) {
-  // Optimistic local update only — there is no connections endpoint yet,
-  // so this is not persisted to the API. Wire up once auth + POST exist.
+let started = false;
+function ensureLoaded() {
+  if (started) return;
+  started = true;
+  void load();
+}
+
+/** Re-fetch matches — call when entering the matches screen so a grown pool
+ *  (new community, changed skills) shows up. Current data stays visible while
+ *  the fresh list loads (stale-while-revalidate). */
+export function refreshMatches(): Promise<void> {
+  started = true;
+  return load();
+}
+
+/** Drop cached matches — call on logout so the next user starts clean. */
+export function resetMatches(): void {
+  started = false;
+  state = [];
+  status = "loading";
+  emit();
+}
+
+function mutate(id: string, next: ConnectionStatus) {
   state = state.map((p) => (p.id === id ? { ...p, connection: next } : p));
   emit();
+}
+
+/** Request a connection. Optimistic update, rolled back if the API fails. */
+export async function requestConnection(id: string): Promise<void> {
+  const prev = state.find((p) => p.id === id)?.connection ?? "none";
+  mutate(id, "requested");
+  try {
+    // Server may answer "connected" (the other side had already asked us).
+    const { status: result } = await apiRequestConnection(id);
+    mutate(id, result);
+  } catch (err) {
+    console.error("[connections] request failed", err);
+    mutate(id, prev);
+  }
+}
+
+/** Accept an incoming request. Optimistic update, rolled back if the API fails. */
+export async function acceptConnection(id: string): Promise<void> {
+  const prev = state.find((p) => p.id === id)?.connection ?? "incoming";
+  mutate(id, "connected");
+  try {
+    await apiAcceptConnection(id);
+  } catch (err) {
+    console.error("[connections] accept failed", err);
+    mutate(id, prev);
+  }
 }
 
 function subscribe(cb: () => void) {

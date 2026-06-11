@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import { AppShell } from "./components/AppShell";
 import { useAuth } from "./lib/auth";
 import { useMyCommunities } from "./lib/community";
+import { useMySkillsStatus } from "./lib/skills";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { VerifyMagicLink } from "./pages/VerifyMagicLink";
@@ -41,6 +42,18 @@ function RequireCommunity() {
   return <Outlet />;
 }
 
+/**
+ * Second onboarding gate: matches only make sense once the user picked their
+ * own skills. Someone who joined a community but quit before the skills step
+ * resumes there instead of staring at an empty match list.
+ */
+function RequireSkills() {
+  const { status, hasSkills } = useMySkillsStatus();
+  if (status === "loading") return <Spinner />;
+  if (!hasSkills) return <Navigate to="/skills" replace />;
+  return <Outlet />;
+}
+
 /** Screens that live inside the app shell (bottom nav). */
 function ShellLayout() {
   return (
@@ -74,8 +87,14 @@ export const router = createBrowserRouter([
             children: [
               { path: "/connect-linkedin", element: <LinkedinConnect /> },
               { path: "/skills", element: <Skills /> },
-              { path: "/matches", element: <Matches /> },
-              { path: "/matches/:id", element: <MatchDetail /> },
+              // Matches additionally require the user's own skills.
+              {
+                element: <RequireSkills />,
+                children: [
+                  { path: "/matches", element: <Matches /> },
+                  { path: "/matches/:id", element: <MatchDetail /> },
+                ],
+              },
             ],
           },
         ],

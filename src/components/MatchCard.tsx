@@ -19,7 +19,9 @@ export function MatchCard({ person }: { person: Person }) {
                 <h3 className="truncate font-semibold text-ink">
                   {person.name}
                 </h3>
-                <p className="truncate text-sm text-ink-soft">{person.role}</p>
+                {person.role && (
+                  <p className="truncate text-sm text-ink-soft">{person.role}</p>
+                )}
                 {person.company && (
                   <p className="truncate text-xs text-muted">
                     {person.company}

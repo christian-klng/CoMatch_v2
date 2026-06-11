@@ -9,6 +9,7 @@ import { matches } from "./routes/matches.js";
 import { admin } from "./routes/admin.js";
 import { me } from "./routes/me.js";
 import { users } from "./routes/users.js";
+import { connections } from "./routes/connections.js";
 
 const app = new Hono();
 
@@ -37,6 +38,7 @@ app.route("/api/matches", matches);
 app.route("/api/admin", admin);
 app.route("/api/me", me);
 app.route("/api/users", users);
+app.route("/api/connections", connections);
 
 const port = Number(process.env.PORT ?? 3000);
 serve({ fetch: app.fetch, port }, (info) => {

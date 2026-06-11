@@ -22,7 +22,7 @@ export function Avatar({
   size = "md",
   className,
 }: {
-  src?: string;
+  src?: string | null;
   name: string;
   size?: keyof typeof sizes;
   className?: string;
