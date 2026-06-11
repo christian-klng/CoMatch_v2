@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import type { Context, Next } from "hono";
 import { sign, verify } from "hono/jwt";
 
@@ -38,6 +38,36 @@ async function verifyJwt(token: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+/** Capability token granting read access to one user's avatar image — <img>
+ *  tags can't send Authorization headers, so the URL itself carries the proof.
+ *  exp is bucket-aligned: the URL stays byte-identical within a bucket (browser
+ *  cache keeps working despite polling) and is valid for 1–2 buckets. The
+ *  "avatar." prefix domain-separates the HMAC from any future use of SECRET. */
+export function avatarToken(userId: string, bucketSeconds = 3600): string {
+  const exp = (Math.floor(Date.now() / 1000 / bucketSeconds) + 2) * bucketSeconds;
+  const sig = createHmac("sha256", SECRET)
+    .update(`avatar.${userId}.${exp}`)
+    .digest("base64url");
+  return `${exp}.${sig}`;
+}
+
+export function verifyAvatarToken(userId: string, token: string): boolean {
+  const dot = token.indexOf(".");
+  if (dot < 1) return false;
+  const exp = Number(token.slice(0, dot));
+  if (!Number.isSafeInteger(exp) || exp <= Math.floor(Date.now() / 1000)) return false;
+  const expected = createHmac("sha256", SECRET)
+    .update(`avatar.${userId}.${exp}`)
+    .digest();
+  let given: Buffer;
+  try {
+    given = Buffer.from(token.slice(dot + 1), "base64url");
+  } catch {
+    return false;
+  }
+  return given.length === expected.length && timingSafeEqual(given, expected);
 }
 
 /** Middleware: require a valid Bearer JWT, expose userId on the context. */

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { cn } from "../../lib/cn";
 
 const sizes = {
@@ -27,13 +28,19 @@ export function Avatar({
   size?: keyof typeof sizes;
   className?: string;
 }) {
+  // Signed avatar URLs expire — fall back to initials when the image fails to
+  // load (e.g. 403 after expiry) instead of showing a broken-image icon. Reset
+  // when the src changes, so the next refresh with a fresh URL retries.
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [src]);
+
   const base = cn(
     "rounded-full object-cover ring-2 ring-surface shadow-sm",
     sizes[size],
     className,
   );
 
-  if (!src) {
+  if (!src || failed) {
     // No photo (e.g. fresh magic-link user) → initials placeholder.
     return (
       <div
@@ -48,5 +55,13 @@ export function Avatar({
     );
   }
 
-  return <img src={src} alt={name} loading="lazy" className={base} />;
+  return (
+    <img
+      src={src}
+      alt={name}
+      loading="lazy"
+      className={base}
+      onError={() => setFailed(true)}
+    />
+  );
 }

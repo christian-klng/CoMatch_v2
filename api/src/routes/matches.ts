@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { pool } from "../db.js";
 import { type AuthEnv, requireAuth } from "../auth.js";
+import { resolveAvatarUrl } from "../avatars.js";
 
 export const matches = new Hono<AuthEnv>();
 
@@ -32,7 +33,8 @@ matches.get("/", requireAuth, async (c) => {
   //    (excluding the viewer). Union across all of the viewer's memberships.
   const candidates = await pool.query(
     `select distinct u.id, u.name, u.role, u.company,
-            u.avatar_url as "avatarUrl", u.bio, u.attributes
+            u.avatar_url as "avatarUrl", u.bio, u.attributes,
+            (u.avatar_data is not null) as "hasAvatarData"
        from users u
        join community_members m on m.user_id = u.id
       where u.id <> $1
@@ -107,7 +109,7 @@ matches.get("/", requireAuth, async (c) => {
       name: isConnected ? u.name : maskName(u.name),
       role: u.role,
       company: u.company ?? undefined,
-      avatarUrl: isConnected ? u.avatarUrl : null,
+      avatarUrl: isConnected ? resolveAvatarUrl(c, u) : null,
       bio: u.bio ?? undefined,
       attributes: u.attributes,
       seeks,

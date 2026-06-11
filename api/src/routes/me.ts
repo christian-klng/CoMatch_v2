@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import type { Context } from "hono";
 import { pool } from "../db.js";
 import { type AuthEnv, requireAuth } from "../auth.js";
+import { apiBaseUrl } from "../avatars.js";
 import {
   downloadImage,
   fetchLinkedInProfile,
@@ -12,14 +12,6 @@ import { mistralConfigured, suggestSkills, type SkillSuggestions } from "../mist
 import { canonicalizeLabels } from "../skillcatalog.js";
 
 export const me = new Hono<AuthEnv>();
-
-/** Public base URL of this API, derived from the proxy's forwarded headers so
- *  we don't need to hardcode the domain (self-configuring, no stale value). */
-function apiBaseUrl(c: Context): string {
-  const proto = c.req.header("x-forwarded-proto") ?? "http";
-  const host = c.req.header("x-forwarded-host") ?? c.req.header("host") ?? "";
-  return `${proto}://${host}`;
-}
 
 // GET /api/me/skills → the logged-in user's seeks/offers as skill ids.
 me.get("/skills", requireAuth, async (c) => {

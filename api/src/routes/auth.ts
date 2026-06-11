@@ -1,5 +1,7 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { pool } from "../db.js";
+import { resolveAvatarUrl } from "../avatars.js";
 import {
   type AuthEnv,
   generateToken,
@@ -79,23 +81,28 @@ auth.post("/verify", async (c) => {
   await pool.query(`update auth_tokens set consumed_at = now() where id = $1`, [rows[0].id]);
 
   const jwt = await issueJwt(rows[0].user_id);
-  return c.json({ token: jwt, user: await getUser(rows[0].user_id) });
+  return c.json({ token: jwt, user: await getUser(c, rows[0].user_id) });
 });
 
 // GET /api/auth/me  (Bearer) → the current user.
 auth.get("/me", requireAuth, async (c) => {
-  const user = await getUser(c.get("userId"));
+  const user = await getUser(c, c.get("userId"));
   if (!user) return c.json({ error: "not_found" }, 404);
   return c.json(user);
 });
 
-async function getUser(id: string) {
+async function getUser(c: Context, id: string) {
   const { rows } = await pool.query(
     `select id, email, name, role, company,
             avatar_url as "avatarUrl", bio, attributes,
-            linkedin_url as "linkedinUrl"
+            linkedin_url as "linkedinUrl",
+            (avatar_data is not null) as "hasAvatarData"
        from users where id = $1`,
     [id],
   );
-  return rows[0] ?? null;
+  if (!rows[0]) return null;
+  // Self-hosted photos are served via signed URLs. 24h bucket (valid 24–48h):
+  // the user object is fetched once per app start and held in memory.
+  const { hasAvatarData, ...user } = rows[0];
+  return { ...user, avatarUrl: resolveAvatarUrl(c, rows[0], 86400) };
 }
