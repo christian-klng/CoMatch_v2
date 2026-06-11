@@ -107,7 +107,11 @@ matches.get("/", requireAuth, async (c) => {
     };
   });
 
+  // Hide zero-overlap candidates — except when a connection exists or is
+  // pending: an incoming request must stay visible so it can be accepted.
+  const visible = result.filter((m) => m.matchScore > 0 || m.connection !== "none");
+
   // Best matches first.
-  result.sort((a, b) => b.matchScore - a.matchScore);
-  return c.json(result);
+  visible.sort((a, b) => b.matchScore - a.matchScore);
+  return c.json(visible);
 });
