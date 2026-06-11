@@ -88,6 +88,16 @@ export function apiSaveMySkills(seeks: string[], offers: string[]): Promise<{ ok
   return sendJson<{ ok: true }>("PUT", "/api/me/skills", { seeks, offers });
 }
 
+/** Update the editable profile fields (name required, rest clearable). */
+export function apiUpdateProfile(data: {
+  name: string;
+  role: string;
+  company: string;
+  bio: string;
+}): Promise<{ ok: true }> {
+  return sendJson<{ ok: true }>("PUT", "/api/me/profile", data);
+}
+
 /** Save the user's LinkedIn URL (consent required) and trigger a profile read.
  *  `profileFetched` is false if the read failed; `reason` says why
  *  (`fetch_failed` = profile not found/unreachable, `unipile_not_configured`

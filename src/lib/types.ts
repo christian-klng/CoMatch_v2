@@ -13,6 +13,8 @@ export interface AuthUser {
   bio?: string | null;
   attributes: string[];
   linkedinUrl?: string | null;
+  /** Whether the LinkedIn profile behind linkedinUrl was successfully read. */
+  linkedinProfileRead?: boolean;
 }
 
 export type SkillKind = "seek" | "offer"; // "ich suche" | "ich kann

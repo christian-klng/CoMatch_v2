@@ -96,6 +96,7 @@ async function getUser(c: Context, id: string) {
     `select id, email, name, role, company,
             avatar_url as "avatarUrl", bio, attributes,
             linkedin_url as "linkedinUrl",
+            (linkedin_profile is not null) as "linkedinProfileRead",
             (avatar_data is not null) as "hasAvatarData"
        from users where id = $1`,
     [id],

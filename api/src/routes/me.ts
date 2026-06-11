@@ -13,6 +13,30 @@ import { canonicalizeLabels } from "../skillcatalog.js";
 
 export const me = new Hono<AuthEnv>();
 
+// PUT /api/me/profile { name, role, company, bio } → update the editable
+// profile fields. Name is required (match cards rely on it); the other fields
+// may be cleared by sending an empty string.
+me.put("/profile", requireAuth, async (c) => {
+  const body = await c.req
+    .json<{ name?: string; role?: string; company?: string; bio?: string }>()
+    .catch(() => ({}) as Record<string, string>);
+
+  const clean = (v: unknown, max: number) =>
+    typeof v === "string" ? v.trim().replace(/\s+/g, " ").slice(0, max) || null : null;
+
+  const name = clean(body.name, 60);
+  if (!name) return c.json({ error: "name_required" }, 400);
+  const role = clean(body.role, 80);
+  const company = clean(body.company, 80);
+  const bio = typeof body.bio === "string" ? body.bio.trim().slice(0, 500) || null : null;
+
+  await pool.query(
+    `update users set name = $2, role = $3, company = $4, bio = $5 where id = $1`,
+    [c.get("userId"), name, role, company, bio],
+  );
+  return c.json({ ok: true });
+});
+
 // GET /api/me/skills → the logged-in user's seeks/offers as skill ids.
 me.get("/skills", requireAuth, async (c) => {
   const { rows } = await pool.query<{ skill_id: string; kind: "seek" | "offer" }>(

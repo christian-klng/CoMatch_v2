@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { ScreenHeader } from "../components/AppShell";
 import { Avatar } from "../components/ui/Avatar";
 import { Badge } from "../components/ui/Badge";
@@ -7,15 +7,14 @@ import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { logout, refreshUser, useAuth } from "../lib/auth";
 import { useMyCommunities } from "../lib/community";
-import { apiSaveLinkedin, ApiError } from "../lib/api";
-import { IconArrowRight, IconLink, IconUsers } from "../components/icons";
+import { apiSaveLinkedin, apiUpdateProfile, ApiError } from "../lib/api";
+import type { AuthUser } from "../lib/types";
+import { IconLink, IconUsers } from "../components/icons";
 
 export function Profile() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { communities } = useMyCommunities();
-  const displayName = user?.name ?? user?.email ?? "Du";
-  const subtitle = [user?.role, user?.company].filter(Boolean).join(" · ");
 
   const signOut = () => {
     logout();
@@ -26,22 +25,7 @@ export function Profile() {
     <>
       <ScreenHeader title="Profil" />
       <div className="space-y-4 px-5 py-5">
-        <Card className="flex items-center gap-4 p-5">
-          <Avatar
-            src={user?.avatarUrl ?? undefined}
-            name={displayName}
-            size="lg"
-          />
-          <div className="min-w-0">
-            <h2 className="truncate font-semibold text-ink">{displayName}</h2>
-            <p className="truncate text-sm text-muted">
-              {subtitle || "Profil noch nicht vervollständigt"}
-            </p>
-            <button className="mt-1 text-sm font-medium text-brand-600">
-              Profil bearbeiten
-            </button>
-          </div>
-        </Card>
+        <ProfileCard user={user} />
 
         <Card className="p-4">
           <div className="mb-1 flex items-center justify-between">
@@ -84,17 +68,10 @@ export function Profile() {
           )}
         </Card>
 
-        <LinkedinCard currentUrl={user?.linkedinUrl ?? null} />
-
-        <Link to="/styleguide">
-          <Card className="flex items-center justify-between p-4 transition-colors hover:bg-surface-2">
-            <div>
-              <p className="text-sm font-medium text-ink">Styleguide</p>
-              <p className="text-sm text-muted">Design-System & Komponenten</p>
-            </div>
-            <IconArrowRight width={18} height={18} className="text-muted" />
-          </Card>
-        </Link>
+        <LinkedinCard
+          currentUrl={user?.linkedinUrl ?? null}
+          profileRead={user?.linkedinProfileRead ?? false}
+        />
 
         <div className="pt-2">
           <Badge tone="neutral">CoMatch v0.1</Badge>
@@ -108,9 +85,148 @@ export function Profile() {
   );
 }
 
+/** Avatar, name and role/company — with an inline form to edit name, role,
+ *  company and bio. */
+function ProfileCard({ user }: { user: AuthUser | null }) {
+  const displayName = user?.name ?? user?.email ?? "Du";
+  const subtitle = [user?.role, user?.company].filter(Boolean).join(" · ");
+
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({ name: "", role: "", company: "", bio: "" });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const startEdit = () => {
+    setForm({
+      name: user?.name ?? "",
+      role: user?.role ?? "",
+      company: user?.company ?? "",
+      bio: user?.bio ?? "",
+    });
+    setError(null);
+    setEditing(true);
+  };
+
+  const save = async () => {
+    if (!form.name.trim() || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await apiUpdateProfile(form);
+      refreshUser();
+      setEditing(false);
+    } catch (err) {
+      console.error("[profile] save failed", err);
+      setError("Speichern fehlgeschlagen. Bitte erneut versuchen.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card className="p-5">
+      <div className="flex items-center gap-4">
+        <Avatar src={user?.avatarUrl ?? undefined} name={displayName} size="lg" />
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate font-semibold text-ink">{displayName}</h2>
+          <p className="truncate text-sm text-muted">
+            {subtitle || "Profil noch nicht vervollständigt"}
+          </p>
+          {!editing && (
+            <button
+              onClick={startEdit}
+              className="mt-1 text-sm font-medium text-brand-600"
+            >
+              Profil bearbeiten
+            </button>
+          )}
+        </div>
+      </div>
+
+      {editing && (
+        <div className="mt-4 space-y-3 border-t border-border pt-4">
+          <ProfileField
+            label="Name"
+            value={form.name}
+            onChange={(name) => setForm((f) => ({ ...f, name }))}
+            placeholder="Dein Name"
+          />
+          <ProfileField
+            label="Rolle"
+            value={form.role}
+            onChange={(role) => setForm((f) => ({ ...f, role }))}
+            placeholder="z. B. Frontend-Entwicklerin"
+          />
+          <ProfileField
+            label="Unternehmen"
+            value={form.company}
+            onChange={(company) => setForm((f) => ({ ...f, company }))}
+            placeholder="z. B. ACME GmbH"
+          />
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-muted">
+              Über mich
+            </span>
+            <textarea
+              value={form.bio}
+              onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
+              placeholder="Ein paar Sätze über dich – sichtbar auf deiner Match-Detailseite."
+              rows={3}
+              maxLength={500}
+              className="w-full resize-none rounded-md border border-border bg-surface px-3 py-2 text-[15px] placeholder:text-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+            />
+          </label>
+
+          {error && <p className="text-sm text-danger">{error}</p>}
+
+          <div className="flex gap-2">
+            <Button size="sm" disabled={!form.name.trim() || busy} onClick={save}>
+              {busy ? "Speichere…" : "Speichern"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+              Abbrechen
+            </Button>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function ProfileField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-medium text-muted">{label}</span>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="h-10 w-full rounded-md border border-border bg-surface px-3 text-[15px] placeholder:text-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+      />
+    </label>
+  );
+}
+
 /** Add or change the LinkedIn URL. Saving requires data-processing consent and
- *  re-reads the profile via the API. */
-function LinkedinCard({ currentUrl }: { currentUrl: string | null }) {
+ *  re-reads the profile via the API. A badge shows whether the profile behind
+ *  the saved URL was actually read. */
+function LinkedinCard({
+  currentUrl,
+  profileRead,
+}: {
+  currentUrl: string | null;
+  profileRead: boolean;
+}) {
   const [url, setUrl] = useState(currentUrl ?? "");
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -124,10 +240,25 @@ function LinkedinCard({ currentUrl }: { currentUrl: string | null }) {
     setBusy(true);
     setStatus(null);
     try {
-      await apiSaveLinkedin(url.trim(), consent);
+      const res = await apiSaveLinkedin(url.trim(), consent);
       refreshUser();
       setConsent(false);
-      setStatus({ ok: true, text: "LinkedIn-Profil gespeichert." });
+      if (res.profileFetched) {
+        setStatus({
+          ok: true,
+          text: "Profil erfolgreich ausgelesen. Deine Skill-Vorschläge werden neu erstellt.",
+        });
+      } else if (res.reason === "unipile_not_configured") {
+        setStatus({
+          ok: false,
+          text: "URL gespeichert – der Profil-Import ist derzeit deaktiviert.",
+        });
+      } else {
+        setStatus({
+          ok: false,
+          text: "URL gespeichert, aber das Profil konnte nicht ausgelesen werden. Bitte prüfe die URL und versuche es erneut.",
+        });
+      }
     } catch (err) {
       const msg =
         err instanceof ApiError && err.status === 400
@@ -144,6 +275,11 @@ function LinkedinCard({ currentUrl }: { currentUrl: string | null }) {
       <div className="flex items-center gap-2">
         <IconLink width={18} height={18} className="text-brand-600" />
         <p className="text-sm font-medium text-ink">LinkedIn</p>
+        {currentUrl && (
+          <Badge tone={profileRead ? "success" : "warning"} className="ml-auto">
+            {profileRead ? "Profil ausgelesen" : "Nicht ausgelesen"}
+          </Badge>
+        )}
       </div>
 
       <div className="flex items-center gap-2 rounded-md border border-border bg-surface px-3 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20">
