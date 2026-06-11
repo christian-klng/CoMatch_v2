@@ -1,0 +1,160 @@
+{
+  "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving…",
+    "email": "Email",
+    "emailPlaceholder": "you@company.com"
+  },
+  "nav": {
+    "matches": "Matches",
+    "skills": "Skills",
+    "profile": "Profile"
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Sign in with a login link – no password needed.",
+      "noAccount": "No account yet?",
+      "register": "Sign up",
+      "submit": "Send login link",
+      "submitting": "Sending link…",
+      "error": "Couldn't send the link. Please try again."
+    },
+    "register": {
+      "title": "Create account",
+      "subtitle": "Enter your email – we'll send you a login link. You'll set up your name and profile afterwards.",
+      "haveAccount": "Already registered?",
+      "login": "Sign in",
+      "terms": "By signing up you agree to the Terms & Privacy Policy."
+    },
+    "sent": {
+      "title": "Email on its way",
+      "body": "We've sent a login link to <strong>{{email}}</strong>. Open it on this device to sign in. The link is valid for 15 minutes.",
+      "reset": "Use a different email"
+    },
+    "verify": {
+      "title": "Signing you in…",
+      "subtitle": "One moment, we're signing you in.",
+      "errorTitle": "Invalid link",
+      "errorSubtitle": "This login link is invalid or has expired.",
+      "requestNew": "Request a new link",
+      "hint": "Login links are valid once and for 15 minutes only. Just request a new one."
+    }
+  },
+  "scan": {
+    "title": "Join a community",
+    "subtitle": "Scan the QR code or enter the code",
+    "intro": "Point the camera at the QR code you find on site – or type in the 8-digit code manually. You'll only be matched within your community.",
+    "checking": "Checking code…",
+    "errorLength": "Please enter the 8-digit community code.",
+    "errorNotFound": "Not a valid community code. Check the digits and try again.",
+    "errorJoin": "Joining failed. Please try again.",
+    "confirmTitle": "Ready to join",
+    "confirmFirst": "Next you'll pick what you're looking for.",
+    "confirmMore": "This expands your match pool.",
+    "memberLine": "{{count}} members · code {{code}}",
+    "join": "Join & get started",
+    "joining": "Joining…",
+    "otherCode": "Enter a different code",
+    "cameraError": "Camera unavailable. Allow access or enter the code manually.",
+    "noQr": "No QR code at hand?",
+    "codePlaceholder": "Enter community code",
+    "joinShort": "Join"
+  },
+  "linkedin": {
+    "title": "Connect LinkedIn",
+    "subtitle": "Get started faster – optional",
+    "loading": "Loading your LinkedIn profile…",
+    "pitch": "Connect your LinkedIn profile and we'll suggest matching skills and \"looking for\" topics right away. You can also skip this and pick everything yourself.",
+    "urlLabel": "Your LinkedIn URL",
+    "urlPlaceholder": "linkedin.com/in/yourname – or just yourname",
+    "consent": "I agree that my public LinkedIn profile is read, processed and stored to improve my matches.",
+    "errorUnavailable": "The LinkedIn import is currently unavailable. You can still continue and pick your skills yourself.",
+    "errorFetch": "We couldn't load your LinkedIn profile. Check your URL (e.g. linkedin.com/in/yourname) and try again – or continue without LinkedIn.",
+    "errorInvalidUrl": "Please enter a valid LinkedIn URL (e.g. linkedin.com/in/yourname).",
+    "errorGeneric": "Connecting failed. Please try again.",
+    "connect": "Connect",
+    "connecting": "Loading profile…",
+    "skip": "Skip"
+  },
+  "skills": {
+    "title": "Your skills",
+    "subtitle": "What are you looking for – what can you offer?",
+    "analyzing": "AI is reading your LinkedIn profile and suggesting matching skills…",
+    "tabSeek": "Seeking",
+    "tabOffer": "Offering",
+    "customSeekPlaceholder": "Add your own – what are you looking for?",
+    "customOfferPlaceholder": "Add your own – what can you offer?",
+    "addSkill": "Add skill",
+    "suggestionHint": "The marked chips come from your LinkedIn profile – feel free to adjust them.",
+    "ctaEmpty": "Pick at least one skill",
+    "cta": "Find matches ({{count}} selected)"
+  },
+  "matches": {
+    "title": "Your matches",
+    "communities_one": "{{count}} community",
+    "communities_other": "{{count}} communities",
+    "incoming_one": "<strong>{{count}} new request</strong> is waiting for you.",
+    "incoming_other": "<strong>{{count}} new requests</strong> are waiting for you.",
+    "errorTitle": "Couldn't load matches",
+    "errorBody": "The connection to the API failed. Check your internet connection and try again later.",
+    "emptyTitle": "No matches yet",
+    "emptyBody": "As soon as more people in your community add their skills, your best matches will show up here."
+  },
+  "matchCard": {
+    "theyOffer": "Offers what you seek",
+    "theySeek": "Seeks what you offer"
+  },
+  "matchDetail": {
+    "notFound": "This match doesn't exist.",
+    "backToMatches": "Back to matches",
+    "hiddenHint": "Name and photo become visible once you're connected.",
+    "seeks": "Looking for",
+    "offers": "Can offer",
+    "afterConnectTitle": "After connecting",
+    "afterConnectBody": "Once you're connected, you can get in touch right here (chat/contact details – coming in v0.2)."
+  },
+  "connection": {
+    "connected": "Connected",
+    "requested": "Request sent",
+    "incoming": "Request received",
+    "accept": "Accept",
+    "request": "Request"
+  },
+  "profile": {
+    "title": "Profile",
+    "you": "You",
+    "incomplete": "Profile not completed yet",
+    "edit": "Edit profile",
+    "name": "Name",
+    "namePlaceholder": "Your name",
+    "role": "Role",
+    "rolePlaceholder": "e.g. frontend developer",
+    "company": "Company",
+    "companyPlaceholder": "e.g. ACME Inc.",
+    "bio": "About me",
+    "bioPlaceholder": "A few sentences about you – visible on your match detail page.",
+    "saveError": "Saving failed. Please try again.",
+    "communities": "My communities",
+    "joinCommunity": "Join",
+    "noCommunity": "Haven't joined a community yet.",
+    "members_one": "{{count}} member",
+    "members_other": "{{count}} members",
+    "poolHint": "Your matches are pooled from all your communities.",
+    "linkedinRead": "Profile imported",
+    "linkedinNotRead": "Not imported",
+    "linkedinPlaceholder": "linkedin.com/in/yourname",
+    "linkedinConsent": "I agree that my public LinkedIn profile is read, processed and stored.",
+    "linkedinSuccess": "Profile imported successfully. Your skill suggestions will be regenerated.",
+    "linkedinDisabled": "URL saved – the profile import is currently disabled.",
+    "linkedinFetchFailed": "URL saved, but the profile couldn't be read. Please check the URL and try again.",
+    "linkedinInvalid": "Please enter a valid LinkedIn URL.",
+    "linkedinError": "Saving failed. Please try again.",
+    "linkedinUpdate": "Update",
+    "linkedinConnect": "Connect",
+    "language": "Language",
+    "signOut": "Sign out"
+  }
+}

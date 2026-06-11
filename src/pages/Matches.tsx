@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { ScreenHeader } from "../components/AppShell";
 import { MatchCard } from "../components/MatchCard";
 import { Badge } from "../components/ui/Badge";
@@ -7,6 +8,7 @@ import { useMyCommunities } from "../lib/community";
 import { IconSparkles } from "../components/icons";
 
 export function Matches() {
+  const { t } = useTranslation();
   const matches = useMatches();
   const status = useMatchesStatus();
   const { communities } = useMyCommunities();
@@ -33,7 +35,7 @@ export function Matches() {
   const subtitle =
     communities.length === 1
       ? communities[0].name
-      : `${communities.length} Communities`;
+      : t("matches.communities", { count: communities.length });
   // Incoming requests first (they want something from you — don't bury them
   // under high scores), then best matches.
   const sorted = [...matches].sort(
@@ -46,7 +48,7 @@ export function Matches() {
   return (
     <>
       <ScreenHeader
-        title="Deine Matches"
+        title={t("matches.title")}
         subtitle={subtitle}
         right={
           <Badge tone="brand">
@@ -58,8 +60,11 @@ export function Matches() {
       <div className="space-y-4 px-5 py-5">
         {incoming.length > 0 && (
           <div className="rounded-xl border border-warning/30 bg-warning-soft/50 px-4 py-3 text-sm text-warning">
-            <span className="font-semibold">{incoming.length} neue Anfrage{incoming.length > 1 ? "n" : ""}</span>{" "}
-            warten auf dich.
+            <Trans
+              i18nKey="matches.incoming"
+              count={incoming.length}
+              components={{ strong: <span className="font-semibold" /> }}
+            />
           </div>
         )}
 
@@ -101,28 +106,24 @@ function LoadingState() {
 }
 
 function ErrorState() {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
-      <h3 className="font-semibold text-ink">Matches konnten nicht geladen werden</h3>
-      <p className="max-w-[260px] text-sm text-muted">
-        Die Verbindung zur API ist fehlgeschlagen. Prüfe deine Internetverbindung
-        und versuche es später erneut.
-      </p>
+      <h3 className="font-semibold text-ink">{t("matches.errorTitle")}</h3>
+      <p className="max-w-[260px] text-sm text-muted">{t("matches.errorBody")}</p>
     </div>
   );
 }
 
 function EmptyState() {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
       <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-2 text-faint">
         <IconSparkles width={26} height={26} />
       </div>
-      <h3 className="font-semibold text-ink">Noch keine Matches</h3>
-      <p className="max-w-[260px] text-sm text-muted">
-        Sobald mehr Leute in deiner Community ihre Skills angeben, erscheinen
-        hier deine besten Matches.
-      </p>
+      <h3 className="font-semibold text-ink">{t("matches.emptyTitle")}</h3>
+      <p className="max-w-[260px] text-sm text-muted">{t("matches.emptyBody")}</p>
     </div>
   );
 }

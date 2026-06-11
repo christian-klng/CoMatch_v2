@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Scanner, type IDetectedBarcode } from "@yudiel/react-qr-scanner";
+import { useTranslation } from "react-i18next";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Card";
 import { Input } from "./ui/Input";
@@ -15,6 +16,7 @@ export function QRScanner({
 }: {
   onResult: (value: string) => void;
 }) {
+  const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
   const [manual, setManual] = useState("");
 
@@ -34,11 +36,7 @@ export function QRScanner({
         ) : (
           <Scanner
             onScan={handleScan}
-            onError={() =>
-              setError(
-                "Kamera nicht verfügbar. Erlaube den Zugriff oder gib den Code manuell ein."
-              )
-            }
+            onError={() => setError(t("scan.cameraError"))}
             constraints={{ facingMode: "environment" }}
             components={{ finder: false }}
             styles={{
@@ -63,14 +61,14 @@ export function QRScanner({
       {/* Manual fallback */}
       <Card className="p-4">
         <p className="mb-2 text-sm font-medium text-ink-soft">
-          Kein QR-Code zur Hand?
+          {t("scan.noQr")}
         </p>
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
             <Input
               value={manual}
               onChange={(e) => setManual(e.target.value)}
-              placeholder="Community-Code eingeben"
+              placeholder={t("scan.codePlaceholder")}
               inputMode="numeric"
             />
           </div>
@@ -78,7 +76,7 @@ export function QRScanner({
             disabled={!manual.trim()}
             onClick={() => onResult(manual.trim())}
           >
-            Beitreten
+            {t("scan.joinShort")}
           </Button>
         </div>
       </Card>

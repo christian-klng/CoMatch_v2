@@ -1,0 +1,160 @@
+{
+  "common": {
+    "back": "Zurück",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "saving": "Speichere…",
+    "email": "E-Mail",
+    "emailPlaceholder": "du@firma.de"
+  },
+  "nav": {
+    "matches": "Matches",
+    "skills": "Skills",
+    "profile": "Profil"
+  },
+  "auth": {
+    "login": {
+      "title": "Willkommen zurück",
+      "subtitle": "Melde dich per Login-Link an – kein Passwort nötig.",
+      "noAccount": "Noch kein Konto?",
+      "register": "Registrieren",
+      "submit": "Login-Link senden",
+      "submitting": "Sende Link…",
+      "error": "Konnte den Link nicht senden. Bitte versuche es erneut."
+    },
+    "register": {
+      "title": "Konto erstellen",
+      "subtitle": "Gib deine E-Mail ein – wir schicken dir einen Login-Link. Deinen Namen und dein Profil legst du danach an.",
+      "haveAccount": "Schon registriert?",
+      "login": "Anmelden",
+      "terms": "Mit der Registrierung stimmst du den AGB & der Datenschutzerklärung zu."
+    },
+    "sent": {
+      "title": "E-Mail unterwegs",
+      "body": "Wir haben einen Login-Link an <strong>{{email}}</strong> geschickt. Öffne ihn auf diesem Gerät, um dich anzumelden. Der Link ist 15 Minuten gültig.",
+      "reset": "Andere E-Mail verwenden"
+    },
+    "verify": {
+      "title": "Anmeldung läuft…",
+      "subtitle": "Einen Moment, wir melden dich an.",
+      "errorTitle": "Link ungültig",
+      "errorSubtitle": "Dieser Login-Link ist ungültig oder abgelaufen.",
+      "requestNew": "Neuen Link anfordern",
+      "hint": "Login-Links sind nur 15 Minuten und einmal gültig. Fordere einfach einen neuen an."
+    }
+  },
+  "scan": {
+    "title": "Community beitreten",
+    "subtitle": "Scanne den QR-Code oder gib den Code ein",
+    "intro": "Richte die Kamera auf den QR-Code, den du vor Ort findest – oder tippe den 8-stelligen Code manuell ein. Nur in deiner Community wirst du gematcht.",
+    "checking": "Code wird geprüft…",
+    "errorLength": "Bitte gib den 8-stelligen Community-Code ein.",
+    "errorNotFound": "Kein gültiger Community-Code. Prüfe die Ziffern und versuche es erneut.",
+    "errorJoin": "Beitritt fehlgeschlagen. Bitte versuche es erneut.",
+    "confirmTitle": "Bereit zum Beitreten",
+    "confirmFirst": "Danach wählst du direkt, was du suchst.",
+    "confirmMore": "Du erweiterst damit deinen Match-Pool.",
+    "memberLine": "{{count}} Mitglieder · Code {{code}}",
+    "join": "Beitreten & loslegen",
+    "joining": "Trete bei…",
+    "otherCode": "Anderen Code eingeben",
+    "cameraError": "Kamera nicht verfügbar. Erlaube den Zugriff oder gib den Code manuell ein.",
+    "noQr": "Kein QR-Code zur Hand?",
+    "codePlaceholder": "Community-Code eingeben",
+    "joinShort": "Beitreten"
+  },
+  "linkedin": {
+    "title": "Verbinde mit LinkedIn",
+    "subtitle": "Schneller starten – optional",
+    "loading": "Dein LinkedIn-Profil wird geladen…",
+    "pitch": "Verbinde dein LinkedIn-Profil, und wir schlagen dir passende Skills und „Ich suche“-Themen direkt vor. Du kannst das auch überspringen und alles selbst wählen.",
+    "urlLabel": "Deine LinkedIn-URL",
+    "urlPlaceholder": "linkedin.com/in/deinname – oder nur deinname",
+    "consent": "Ich stimme zu, dass mein öffentliches LinkedIn-Profil ausgelesen und zur Verbesserung meiner Matches verarbeitet und gespeichert wird.",
+    "errorUnavailable": "Der LinkedIn-Import ist gerade nicht verfügbar. Du kannst trotzdem fortfahren und deine Skills selbst wählen.",
+    "errorFetch": "Wir konnten dein LinkedIn-Profil nicht laden. Prüfe deine URL (z. B. linkedin.com/in/deinname) und versuche es erneut – oder fahre ohne LinkedIn fort.",
+    "errorInvalidUrl": "Bitte gib eine gültige LinkedIn-URL ein (z. B. linkedin.com/in/deinname).",
+    "errorGeneric": "Verbinden fehlgeschlagen. Bitte versuche es erneut.",
+    "connect": "Verbinden",
+    "connecting": "Profil wird geladen…",
+    "skip": "Überspringen"
+  },
+  "skills": {
+    "title": "Deine Skills",
+    "subtitle": "Was suchst du – was kannst du anbieten?",
+    "analyzing": "KI liest dein LinkedIn-Profil und schlägt passende Skills vor…",
+    "tabSeek": "Ich suche",
+    "tabOffer": "Ich kann",
+    "customSeekPlaceholder": "Eigenen Eintrag hinzufügen – was suchst du?",
+    "customOfferPlaceholder": "Eigenen Eintrag hinzufügen – was kannst du?",
+    "addSkill": "Skill hinzufügen",
+    "suggestionHint": "Die markierten Chips stammen aus deinem LinkedIn-Profil – passe sie gern an.",
+    "ctaEmpty": "Wähle mindestens einen Skill",
+    "cta": "Matches finden ({{count}} gewählt)"
+  },
+  "matches": {
+    "title": "Deine Matches",
+    "communities_one": "{{count}} Community",
+    "communities_other": "{{count}} Communities",
+    "incoming_one": "<strong>{{count}} neue Anfrage</strong> wartet auf dich.",
+    "incoming_other": "<strong>{{count}} neue Anfragen</strong> warten auf dich.",
+    "errorTitle": "Matches konnten nicht geladen werden",
+    "errorBody": "Die Verbindung zur API ist fehlgeschlagen. Prüfe deine Internetverbindung und versuche es später erneut.",
+    "emptyTitle": "Noch keine Matches",
+    "emptyBody": "Sobald mehr Leute in deiner Community ihre Skills angeben, erscheinen hier deine besten Matches."
+  },
+  "matchCard": {
+    "theyOffer": "Kann, was du suchst",
+    "theySeek": "Sucht, was du kannst"
+  },
+  "matchDetail": {
+    "notFound": "Dieses Match existiert nicht.",
+    "backToMatches": "Zurück zu Matches",
+    "hiddenHint": "Name und Foto werden sichtbar, sobald ihr verbunden seid.",
+    "seeks": "Sucht",
+    "offers": "Kann anbieten",
+    "afterConnectTitle": "Nach dem Verbinden",
+    "afterConnectBody": "Sobald ihr verbunden seid, könnt ihr hier direkt Kontakt aufnehmen (Chat/Kontaktdaten – kommt in v0.2)."
+  },
+  "connection": {
+    "connected": "Verbunden",
+    "requested": "Anfrage gesendet",
+    "incoming": "Anfrage erhalten",
+    "accept": "Annehmen",
+    "request": "Anfragen"
+  },
+  "profile": {
+    "title": "Profil",
+    "you": "Du",
+    "incomplete": "Profil noch nicht vervollständigt",
+    "edit": "Profil bearbeiten",
+    "name": "Name",
+    "namePlaceholder": "Dein Name",
+    "role": "Rolle",
+    "rolePlaceholder": "z. B. Frontend-Entwicklerin",
+    "company": "Unternehmen",
+    "companyPlaceholder": "z. B. ACME GmbH",
+    "bio": "Über mich",
+    "bioPlaceholder": "Ein paar Sätze über dich – sichtbar auf deiner Match-Detailseite.",
+    "saveError": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
+    "communities": "Meine Communities",
+    "joinCommunity": "Beitreten",
+    "noCommunity": "Noch keiner Community beigetreten.",
+    "members_one": "{{count}} Mitglied",
+    "members_other": "{{count}} Mitglieder",
+    "poolHint": "Deine Matches kommen aus allen deinen Communities zusammen.",
+    "linkedinRead": "Profil ausgelesen",
+    "linkedinNotRead": "Nicht ausgelesen",
+    "linkedinPlaceholder": "linkedin.com/in/deinname",
+    "linkedinConsent": "Ich stimme zu, dass mein öffentliches LinkedIn-Profil ausgelesen, verarbeitet und gespeichert wird.",
+    "linkedinSuccess": "Profil erfolgreich ausgelesen. Deine Skill-Vorschläge werden neu erstellt.",
+    "linkedinDisabled": "URL gespeichert – der Profil-Import ist derzeit deaktiviert.",
+    "linkedinFetchFailed": "URL gespeichert, aber das Profil konnte nicht ausgelesen werden. Bitte prüfe die URL und versuche es erneut.",
+    "linkedinInvalid": "Bitte gib eine gültige LinkedIn-URL ein.",
+    "linkedinError": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
+    "linkedinUpdate": "Aktualisieren",
+    "linkedinConnect": "Verbinden",
+    "language": "Sprache",
+    "signOut": "Abmelden"
+  }
+}

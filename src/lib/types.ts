@@ -15,6 +15,8 @@ export interface AuthUser {
   linkedinUrl?: string | null;
   /** Whether the LinkedIn profile behind linkedinUrl was successfully read. */
   linkedinProfileRead?: boolean;
+  /** Explicitly chosen UI language; null = follow browser detection. */
+  locale?: "de" | "en" | null;
 }
 
 export type SkillKind = "seek" | "offer"; // "ich suche" | "ich kann

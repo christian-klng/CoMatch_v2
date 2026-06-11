@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ScreenHeader } from "../components/AppShell";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -21,6 +22,7 @@ import { IconArrowRight, IconGift, IconPlus, IconSearch } from "../components/ic
 type Mode = "seek" | "offer";
 
 export function Skills() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [seeks, setSeeks] = useState<Set<string>>(new Set());
   const [offers, setOffers] = useState<Set<string>>(new Set());
@@ -142,18 +144,13 @@ export function Skills() {
 
   return (
     <>
-      <ScreenHeader
-        title="Deine Skills"
-        subtitle="Was suchst du – was kannst du anbieten?"
-      />
+      <ScreenHeader title={t("skills.title")} subtitle={t("skills.subtitle")} />
 
       <div className="px-5 py-5 pb-40">
         {phase === "analyzing" ? (
           <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
             <Spinner />
-            <p className="text-sm text-muted">
-              KI liest dein LinkedIn-Profil und schlägt passende Skills vor…
-            </p>
+            <p className="text-sm text-muted">{t("skills.analyzing")}</p>
           </div>
         ) : (
           <>
@@ -163,7 +160,7 @@ export function Skills() {
                 active={mode === "seek"}
                 onClick={() => setMode("seek")}
                 icon={<IconSearch width={17} height={17} />}
-                label="Ich suche"
+                label={t("skills.tabSeek")}
                 count={seeks.size}
                 tone="seek"
               />
@@ -171,7 +168,7 @@ export function Skills() {
                 active={mode === "offer"}
                 onClick={() => setMode("offer")}
                 icon={<IconGift width={17} height={17} />}
-                label="Ich kann"
+                label={t("skills.tabOffer")}
                 count={offers.size}
                 tone="offer"
               />
@@ -190,15 +187,15 @@ export function Skills() {
               }}
               placeholder={
                 mode === "seek"
-                  ? "Eigenen Eintrag hinzufügen – was suchst du?"
-                  : "Eigenen Eintrag hinzufügen – was kannst du?"
+                  ? t("skills.customSeekPlaceholder")
+                  : t("skills.customOfferPlaceholder")
               }
               maxLength={80}
               rightSlot={
                 <button
                   onClick={() => void addCustom()}
                   disabled={!custom.trim() || addingCustom}
-                  aria-label="Skill hinzufügen"
+                  aria-label={t("skills.addSkill")}
                   className={cn(
                     "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white transition-all active:scale-95 disabled:opacity-40",
                     mode === "seek"
@@ -214,8 +211,7 @@ export function Skills() {
             {/* AI suggestion hint */}
             {hasSuggestions && (
               <p className="mb-3 text-[13px] leading-relaxed text-muted">
-                Die markierten Chips stammen aus deinem LinkedIn-Profil – passe sie
-                gern an.
+                {t("skills.suggestionHint")}
               </p>
             )}
 
@@ -263,10 +259,10 @@ export function Skills() {
       <div className="fixed inset-x-0 bottom-[calc(68px+env(safe-area-inset-bottom))] z-20 mx-auto w-full max-w-[440px] border-t border-border bg-surface/90 px-5 py-3 backdrop-blur-md">
         <Button fullWidth size="lg" disabled={total === 0 || saving} onClick={save}>
           {total === 0
-            ? "Wähle mindestens einen Skill"
+            ? t("skills.ctaEmpty")
             : saving
-              ? "Speichere…"
-              : `Matches finden (${total} gewählt)`}
+              ? t("common.saving")
+              : t("skills.cta", { count: total })}
           {total > 0 && !saving && <IconArrowRight width={18} height={18} />}
         </Button>
       </div>

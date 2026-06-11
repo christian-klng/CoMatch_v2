@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import i18n from "../i18n";
 import type { AuthUser } from "./types";
 import {
   apiMe,
@@ -24,6 +25,12 @@ const listeners = new Set<() => void>();
 
 function set(next: AuthState) {
   state = next;
+  // A language explicitly chosen by the user (stored server-side) wins over
+  // the device's detected language — e.g. on a fresh browser after login.
+  const locale = next.user?.locale;
+  if (locale && !i18n.language?.startsWith(locale)) {
+    void i18n.changeLanguage(locale);
+  }
   listeners.forEach((l) => l());
 }
 

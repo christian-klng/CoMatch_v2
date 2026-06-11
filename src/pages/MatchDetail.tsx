@@ -1,4 +1,5 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useMatch } from "../lib/matchStore";
 import { cn } from "../lib/cn";
 import { Avatar } from "../components/ui/Avatar";
@@ -14,6 +15,7 @@ import {
 } from "../components/icons";
 
 export function MatchDetail() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const person = useMatch(id);
@@ -23,9 +25,9 @@ export function MatchDetail() {
   if (!person) {
     return (
       <div className="flex flex-col items-center gap-4 px-6 py-20 text-center">
-        <p className="text-muted">Dieses Match existiert nicht.</p>
+        <p className="text-muted">{t("matchDetail.notFound")}</p>
         <Link to="/matches" className="font-medium text-brand-600">
-          Zurück zu Matches
+          {t("matchDetail.backToMatches")}
         </Link>
       </div>
     );
@@ -39,7 +41,7 @@ export function MatchDetail() {
           onClick={() => navigate(-1)}
           className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-white/80 hover:text-white"
         >
-          <IconArrowLeft width={18} height={18} /> Zurück
+          <IconArrowLeft width={18} height={18} /> {t("common.back")}
         </button>
       </div>
 
@@ -71,9 +73,7 @@ export function MatchDetail() {
             <p className="text-sm text-muted">{person.company}</p>
           )}
           {hidden && (
-            <p className="mt-1 text-xs text-faint">
-              Name und Foto werden sichtbar, sobald ihr verbunden seid.
-            </p>
+            <p className="mt-1 text-xs text-faint">{t("matchDetail.hiddenHint")}</p>
           )}
 
           {person.bio && (
@@ -96,14 +96,14 @@ export function MatchDetail() {
         {/* Skills detail */}
         <div className="mt-4 space-y-3 pb-10">
           <SkillBlock
-            title="Sucht"
+            title={t("matchDetail.seeks")}
             icon={<IconSearch width={16} height={16} />}
             tone="seek"
             items={person.seeks}
             highlight={person.matchedOn.theySeek}
           />
           <SkillBlock
-            title="Kann anbieten"
+            title={t("matchDetail.offers")}
             icon={<IconGift width={16} height={16} />}
             tone="offer"
             items={person.offers}
@@ -112,12 +112,9 @@ export function MatchDetail() {
 
           <div className="rounded-xl border border-border bg-surface-2/60 p-4 text-sm text-muted">
             <p className="flex items-center gap-2 font-medium text-ink-soft">
-              <IconLink width={15} height={15} /> Nach dem Verbinden
+              <IconLink width={15} height={15} /> {t("matchDetail.afterConnectTitle")}
             </p>
-            <p className="mt-1">
-              Sobald ihr verbunden seid, könnt ihr hier direkt Kontakt aufnehmen
-              (Chat/Kontaktdaten – kommt in v0.2).
-            </p>
+            <p className="mt-1">{t("matchDetail.afterConnectBody")}</p>
           </div>
         </div>
       </div>

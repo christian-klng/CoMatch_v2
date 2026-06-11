@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { AuthShell } from "./AuthShell";
 import { Spinner } from "../components/ui/Spinner";
 import { verifyMagicLink } from "../lib/auth";
@@ -7,6 +8,7 @@ import { verifyMagicLink } from "../lib/auth";
 type State = "verifying" | "error";
 
 export function VerifyMagicLink() {
+  const { t } = useTranslation();
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const [state, setState] = useState<State>("verifying");
@@ -30,16 +32,16 @@ export function VerifyMagicLink() {
 
   return (
     <AuthShell
-      title={state === "error" ? "Link ungültig" : "Anmeldung läuft…"}
+      title={state === "error" ? t("auth.verify.errorTitle") : t("auth.verify.title")}
       subtitle={
         state === "error"
-          ? "Dieser Login-Link ist ungültig oder abgelaufen."
-          : "Einen Moment, wir melden dich an."
+          ? t("auth.verify.errorSubtitle")
+          : t("auth.verify.subtitle")
       }
       footer={
         state === "error" ? (
           <Link to="/login" className="font-medium text-brand-600">
-            Neuen Link anfordern
+            {t("auth.verify.requestNew")}
           </Link>
         ) : null
       }
@@ -49,9 +51,7 @@ export function VerifyMagicLink() {
           <Spinner size="sm" />
         </div>
       ) : (
-        <p className="text-sm text-muted">
-          Login-Links sind nur 15 Minuten und einmal gültig. Fordere einfach einen neuen an.
-        </p>
+        <p className="text-sm text-muted">{t("auth.verify.hint")}</p>
       )}
     </AuthShell>
   );

@@ -88,6 +88,11 @@ export function apiSaveMySkills(seeks: string[], offers: string[]): Promise<{ ok
   return sendJson<{ ok: true }>("PUT", "/api/me/skills", { seeks, offers });
 }
 
+/** Persist the user's explicit language choice (for emails etc.). */
+export function apiSetLocale(locale: "de" | "en"): Promise<{ ok: true }> {
+  return sendJson<{ ok: true }>("PUT", "/api/me/locale", { locale });
+}
+
 /** Update the editable profile fields (name required, rest clearable). */
 export function apiUpdateProfile(data: {
   name: string;

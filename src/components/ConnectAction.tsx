@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { ConnectionStatus, Person } from "../lib/types";
 import { acceptConnection, requestConnection } from "../lib/matchStore";
 import { Button } from "./ui/Button";
@@ -8,23 +9,24 @@ import { IconCheck, IconClock, IconLink } from "./icons";
 /** Read-only connection status for the match list — actions (request/accept)
  *  live on the person's detail page only. Renders nothing for "none". */
 export function ConnectionBadge({ status }: { status: ConnectionStatus }) {
+  const { t } = useTranslation();
   switch (status) {
     case "connected":
       return (
         <Badge tone="success">
-          <IconCheck width={13} height={13} /> Verbunden
+          <IconCheck width={13} height={13} /> {t("connection.connected")}
         </Badge>
       );
     case "requested":
       return (
         <Badge tone="warning">
-          <IconClock width={13} height={13} /> Anfrage gesendet
+          <IconClock width={13} height={13} /> {t("connection.requested")}
         </Badge>
       );
     case "incoming":
       return (
         <Badge tone="brand">
-          <IconLink width={13} height={13} /> Anfrage erhalten
+          <IconLink width={13} height={13} /> {t("connection.incoming")}
         </Badge>
       );
     default:
@@ -44,6 +46,7 @@ export function ConnectAction({
   size?: "sm" | "md";
 }) {
   const [busy, setBusy] = useState(false);
+  const { t } = useTranslation();
 
   const run = async (action: (id: string) => Promise<void>) => {
     setBusy(true);
@@ -58,19 +61,19 @@ export function ConnectAction({
     case "connected":
       return (
         <Badge tone="success">
-          <IconCheck width={13} height={13} /> Verbunden
+          <IconCheck width={13} height={13} /> {t("connection.connected")}
         </Badge>
       );
     case "requested":
       return (
         <Badge tone="warning">
-          <IconClock width={13} height={13} /> Anfrage gesendet
+          <IconClock width={13} height={13} /> {t("connection.requested")}
         </Badge>
       );
     case "incoming":
       return (
         <Button size={size} disabled={busy} onClick={() => run(acceptConnection)}>
-          <IconCheck width={16} height={16} /> Annehmen
+          <IconCheck width={16} height={16} /> {t("connection.accept")}
         </Button>
       );
     default:
@@ -81,7 +84,7 @@ export function ConnectAction({
           disabled={busy}
           onClick={() => run(requestConnection)}
         >
-          <IconLink width={16} height={16} /> Anfragen
+          <IconLink width={16} height={16} /> {t("connection.request")}
         </Button>
       );
   }

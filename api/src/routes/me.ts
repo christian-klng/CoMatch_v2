@@ -37,6 +37,22 @@ me.put("/profile", requireAuth, async (c) => {
   return c.json({ ok: true });
 });
 
+// PUT /api/me/locale { locale } → persist the user's explicit language choice
+// (used for outgoing emails; the SPA itself reads it from /auth/me).
+me.put("/locale", requireAuth, async (c) => {
+  const body = await c.req
+    .json<{ locale?: string }>()
+    .catch(() => ({}) as { locale?: string });
+  if (body.locale !== "de" && body.locale !== "en") {
+    return c.json({ error: "invalid_locale" }, 400);
+  }
+  await pool.query(`update users set locale = $2 where id = $1`, [
+    c.get("userId"),
+    body.locale,
+  ]);
+  return c.json({ ok: true });
+});
+
 // GET /api/me/skills → the logged-in user's seeks/offers as skill ids.
 me.get("/skills", requireAuth, async (c) => {
   const { rows } = await pool.query<{ skill_id: string; kind: "seek" | "offer" }>(

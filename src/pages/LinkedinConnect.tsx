@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ScreenHeader } from "../components/AppShell";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -9,6 +10,7 @@ import { IconArrowRight, IconLink, IconSparkles } from "../components/icons";
 import { apiSaveLinkedin, ApiError } from "../lib/api";
 
 export function LinkedinConnect() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [url, setUrl] = useState("");
   const [consent, setConsent] = useState(false);
@@ -32,15 +34,15 @@ export function LinkedinConnect() {
       }
       setError(
         res.reason === "unipile_not_configured"
-          ? "Der LinkedIn-Import ist gerade nicht verfügbar. Du kannst trotzdem fortfahren und deine Skills selbst wählen."
-          : "Wir konnten dein LinkedIn-Profil nicht laden. Prüfe deine URL (z. B. linkedin.com/in/deinname) und versuche es erneut – oder fahre ohne LinkedIn fort.",
+          ? t("linkedin.errorUnavailable")
+          : t("linkedin.errorFetch"),
       );
       setBusy(false);
     } catch (err) {
       if (err instanceof ApiError && err.status === 400) {
-        setError("Bitte gib eine gültige LinkedIn-URL ein (z. B. linkedin.com/in/deinname).");
+        setError(t("linkedin.errorInvalidUrl"));
       } else {
-        setError("Verbinden fehlgeschlagen. Bitte versuche es erneut.");
+        setError(t("linkedin.errorGeneric"));
       }
       setBusy(false);
     }
@@ -49,10 +51,10 @@ export function LinkedinConnect() {
   if (busy) {
     return (
       <>
-        <ScreenHeader title="Verbinde mit LinkedIn" subtitle="Schneller starten – optional" />
+        <ScreenHeader title={t("linkedin.title")} subtitle={t("linkedin.subtitle")} />
         <div className="flex flex-col items-center justify-center gap-4 px-5 py-20 text-center">
           <Spinner />
-          <p className="text-sm text-muted">Dein LinkedIn-Profil wird geladen…</p>
+          <p className="text-sm text-muted">{t("linkedin.loading")}</p>
         </div>
       </>
     );
@@ -60,28 +62,23 @@ export function LinkedinConnect() {
 
   return (
     <>
-      <ScreenHeader
-        title="Verbinde mit LinkedIn"
-        subtitle="Schneller starten – optional"
-      />
+      <ScreenHeader title={t("linkedin.title")} subtitle={t("linkedin.subtitle")} />
 
       <div className="px-5 py-5">
         <div className="animate-rise space-y-6">
           <div className="flex items-start gap-3 rounded-xl border border-brand-100 bg-brand-50/60 p-3.5">
             <IconSparkles width={20} height={20} className="mt-0.5 shrink-0 text-brand-600" />
             <p className="text-[13px] leading-relaxed text-brand-800">
-              Verbinde dein LinkedIn-Profil, und wir schlagen dir passende Skills
-              und „Ich suche"-Themen direkt vor. Du kannst das auch überspringen
-              und alles selbst wählen.
+              {t("linkedin.pitch")}
             </p>
           </div>
 
           <Input
-            label="Deine LinkedIn-URL"
+            label={t("linkedin.urlLabel")}
             leftIcon={<IconLink width={18} height={18} />}
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="linkedin.com/in/deinname – oder nur deinname"
+            placeholder={t("linkedin.urlPlaceholder")}
             inputMode="url"
             autoCapitalize="none"
           />
@@ -93,17 +90,14 @@ export function LinkedinConnect() {
               onChange={(e) => setConsent(e.target.checked)}
               className="mt-0.5 h-4 w-4 shrink-0 accent-brand-600"
             />
-            <span>
-              Ich stimme zu, dass mein öffentliches LinkedIn-Profil ausgelesen und
-              zur Verbesserung meiner Matches verarbeitet und gespeichert wird.
-            </span>
+            <span>{t("linkedin.consent")}</span>
           </label>
 
           {error && <Notice>{error}</Notice>}
 
           <div className="space-y-2">
             <Button fullWidth size="lg" disabled={!canSubmit} onClick={connect}>
-              {busy ? "Profil wird geladen…" : "Verbinden"}
+              {busy ? t("linkedin.connecting") : t("linkedin.connect")}
               {!busy && <IconArrowRight width={18} height={18} />}
             </Button>
             <Button
@@ -112,7 +106,7 @@ export function LinkedinConnect() {
               disabled={busy}
               onClick={() => navigate("/skills")}
             >
-              Überspringen
+              {t("linkedin.skip")}
             </Button>
           </div>
         </div>

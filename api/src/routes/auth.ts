@@ -94,7 +94,7 @@ auth.get("/me", requireAuth, async (c) => {
 async function getUser(c: Context, id: string) {
   const { rows } = await pool.query(
     `select id, email, name, role, company,
-            avatar_url as "avatarUrl", bio, attributes,
+            avatar_url as "avatarUrl", bio, attributes, locale,
             linkedin_url as "linkedinUrl",
             (linkedin_profile is not null) as "linkedinProfileRead",
             (avatar_data is not null) as "hasAvatarData"

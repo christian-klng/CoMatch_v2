@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ScreenHeader } from "../components/AppShell";
 import { QRScanner } from "../components/QRScanner";
 import { Button } from "../components/ui/Button";
@@ -13,6 +14,7 @@ import type { Community } from "../lib/types";
 type Phase = "input" | "confirm";
 
 export function Scan() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { communities } = useMyCommunities();
   const [phase, setPhase] = useState<Phase>("input");
@@ -24,7 +26,7 @@ export function Scan() {
   const resolve = async (raw: string) => {
     const code = raw.replace(/\D/g, "").slice(0, 8);
     if (code.length !== 8) {
-      setError("Bitte gib den 8-stelligen Community-Code ein.");
+      setError(t("scan.errorLength"));
       return;
     }
     setError(null);
@@ -34,7 +36,7 @@ export function Scan() {
       setCommunity(found);
       setPhase("confirm");
     } catch {
-      setError("Kein gültiger Community-Code. Prüfe die Ziffern und versuche es erneut.");
+      setError(t("scan.errorNotFound"));
     } finally {
       setBusy(false);
     }
@@ -55,28 +57,25 @@ export function Scan() {
       // First join → LinkedIn step, then skills. Later joins skip straight to matches.
       navigate(isFirstCommunity ? "/connect-linkedin" : "/matches");
     } catch {
-      setError("Beitritt fehlgeschlagen. Bitte versuche es erneut.");
+      setError(t("scan.errorJoin"));
       setBusy(false);
     }
   };
 
   return (
     <>
-      <ScreenHeader
-        title="Community beitreten"
-        subtitle="Scanne den QR-Code oder gib den Code ein"
-      />
+      <ScreenHeader title={t("scan.title")} subtitle={t("scan.subtitle")} />
 
       <div className="px-5 py-5">
         {phase === "input" && (
           <div className="animate-rise space-y-5">
             <p className="text-[15px] leading-relaxed text-ink-soft">
-              Richte die Kamera auf den QR-Code, den du vor Ort findest – oder
-              tippe den 8-stelligen Code manuell ein. Nur in deiner Community
-              wirst du gematcht.
+              {t("scan.intro")}
             </p>
             <QRScanner onResult={resolve} />
-            {busy && <p className="text-center text-sm text-muted">Code wird geprüft…</p>}
+            {busy && (
+              <p className="text-center text-sm text-muted">{t("scan.checking")}</p>
+            )}
             {error && <Notice>{error}</Notice>}
           </div>
         )}
@@ -85,12 +84,12 @@ export function Scan() {
           <div className="animate-rise space-y-6 pt-2 text-center">
             <div>
               <h2 className="text-xl font-semibold text-ink">
-                Bereit zum Beitreten
+                {t("scan.confirmTitle")}
               </h2>
               <p className="mt-1 text-sm text-muted">
                 {communities.length === 0
-                  ? "Danach wählst du direkt, was du suchst."
-                  : "Du erweiterst damit deinen Match-Pool."}
+                  ? t("scan.confirmFirst")
+                  : t("scan.confirmMore")}
               </p>
             </div>
 
@@ -105,7 +104,10 @@ export function Scan() {
                     <p className="text-sm text-muted">{community.context}</p>
                   )}
                   <p className="mt-1 text-xs text-faint">
-                    {community.memberCount} Mitglieder · Code {community.code}
+                    {t("scan.memberLine", {
+                      count: community.memberCount,
+                      code: community.code,
+                    })}
                   </p>
                 </div>
               </div>
@@ -115,7 +117,7 @@ export function Scan() {
 
             <div className="space-y-2">
               <Button fullWidth size="lg" disabled={busy} onClick={join}>
-                {busy ? "Trete bei…" : "Beitreten & loslegen"}
+                {busy ? t("scan.joining") : t("scan.join")}
                 {!busy && <IconArrowRight width={18} height={18} />}
               </Button>
               <Button
@@ -128,7 +130,7 @@ export function Scan() {
                   setError(null);
                 }}
               >
-                Anderen Code eingeben
+                {t("scan.otherCode")}
               </Button>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { Trans, useTranslation } from "react-i18next";
 import { AuthShell } from "./AuthShell";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -8,6 +9,7 @@ import { requestMagicLink } from "../lib/auth";
 import { IconArrowRight, IconCheck } from "../components/icons";
 
 export function Login() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -21,7 +23,7 @@ export function Login() {
       await requestMagicLink(email);
       setSent(true);
     } catch {
-      setError("Konnte den Link nicht senden. Bitte versuche es erneut.");
+      setError(t("auth.login.error"));
     } finally {
       setBusy(false);
     }
@@ -29,13 +31,13 @@ export function Login() {
 
   return (
     <AuthShell
-      title="Willkommen zurück"
-      subtitle="Melde dich per Login-Link an – kein Passwort nötig."
+      title={t("auth.login.title")}
+      subtitle={t("auth.login.subtitle")}
       footer={
         <>
-          Noch kein Konto?{" "}
+          {t("auth.login.noAccount")}{" "}
           <Link to="/register" className="font-medium text-brand-600">
-            Registrieren
+            {t("auth.login.register")}
           </Link>
         </>
       }
@@ -45,17 +47,17 @@ export function Login() {
       ) : (
         <form onSubmit={submit} className="space-y-4">
           <Input
-            label="E-Mail"
+            label={t("common.email")}
             type="email"
             inputMode="email"
             autoComplete="email"
-            placeholder="du@firma.de"
+            placeholder={t("common.emailPlaceholder")}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
           {error && <Notice>{error}</Notice>}
           <Button type="submit" fullWidth size="lg" disabled={busy || !email.trim()}>
-            {busy ? "Sende Link…" : "Login-Link senden"}
+            {busy ? t("auth.login.submitting") : t("auth.login.submit")}
             {!busy && <IconArrowRight width={18} height={18} />}
           </Button>
         </form>
@@ -65,16 +67,20 @@ export function Login() {
 }
 
 export function MagicLinkSent({ email, onReset }: { email: string; onReset: () => void }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4 text-center">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-50 text-brand-600">
         <IconCheck width={28} height={28} />
       </div>
       <div>
-        <h3 className="font-semibold text-ink">E-Mail unterwegs</h3>
+        <h3 className="font-semibold text-ink">{t("auth.sent.title")}</h3>
         <p className="mt-1 text-sm text-muted">
-          Wir haben einen Login-Link an <span className="font-medium text-ink-soft">{email}</span>{" "}
-          geschickt. Öffne ihn auf diesem Gerät, um dich anzumelden. Der Link ist 15 Minuten gültig.
+          <Trans
+            i18nKey="auth.sent.body"
+            values={{ email }}
+            components={{ strong: <span className="font-medium text-ink-soft" /> }}
+          />
         </p>
       </div>
       <button
@@ -82,7 +88,7 @@ export function MagicLinkSent({ email, onReset }: { email: string; onReset: () =
         onClick={onReset}
         className="text-sm font-medium text-muted hover:text-ink-soft"
       >
-        Andere E-Mail verwenden
+        {t("auth.sent.reset")}
       </button>
     </div>
   );

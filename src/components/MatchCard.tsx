@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import type { Person } from "../lib/types";
 import { Card } from "./ui/Card";
 import { Badge } from "./ui/Badge";
@@ -9,6 +10,7 @@ import { ScoreRing } from "./ScoreRing";
 import { IconGift, IconSearch } from "./icons";
 
 export function MatchCard({ person }: { person: Person }) {
+  const { t } = useTranslation();
   // Identity (name + photo) is revealed only once both sides are connected;
   // until then the server sends masked data and we render it pixelated.
   const hidden = person.connection !== "connected";
@@ -53,7 +55,7 @@ export function MatchCard({ person }: { person: Person }) {
             <Row
               icon={<IconGift width={14} height={14} />}
               tone="offer"
-              label="Kann, was du suchst"
+              label={t("matchCard.theyOffer")}
               items={person.matchedOn.theyOffer}
             />
           )}
@@ -61,7 +63,7 @@ export function MatchCard({ person }: { person: Person }) {
             <Row
               icon={<IconSearch width={14} height={14} />}
               tone="seek"
-              label="Sucht, was du kannst"
+              label={t("matchCard.theySeek")}
               items={person.matchedOn.theySeek}
             />
           )}

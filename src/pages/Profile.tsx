@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ScreenHeader } from "../components/AppShell";
 import { Avatar } from "../components/ui/Avatar";
 import { Badge } from "../components/ui/Badge";
@@ -9,11 +10,14 @@ import { Input } from "../components/ui/Input";
 import { Notice } from "../components/ui/Notice";
 import { logout, refreshUser, useAuth } from "../lib/auth";
 import { useMyCommunities } from "../lib/community";
-import { apiSaveLinkedin, apiUpdateProfile, ApiError } from "../lib/api";
+import { apiSaveLinkedin, apiSetLocale, apiUpdateProfile, ApiError } from "../lib/api";
+import i18n, { currentLocale, type Locale } from "../i18n";
+import { cn } from "../lib/cn";
 import type { AuthUser } from "../lib/types";
 import { IconLink, IconUsers } from "../components/icons";
 
 export function Profile() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { communities } = useMyCommunities();
@@ -25,25 +29,25 @@ export function Profile() {
 
   return (
     <>
-      <ScreenHeader title="Profil" />
+      <ScreenHeader title={t("profile.title")} />
       <div className="space-y-4 px-5 py-5">
         <ProfileCard user={user} />
 
         <Card className="p-4">
           <div className="mb-1 flex items-center justify-between">
             <p className="text-sm font-medium text-ink">
-              Meine Communities
+              {t("profile.communities")}
               {communities.length > 0 && (
                 <span className="ml-1 text-muted">({communities.length})</span>
               )}
             </p>
             <Button size="sm" variant="ghost" onClick={() => navigate("/scan")}>
-              Beitreten
+              {t("profile.joinCommunity")}
             </Button>
           </div>
 
           {communities.length === 0 ? (
-            <p className="text-sm text-muted">Noch keiner Community beigetreten.</p>
+            <p className="text-sm text-muted">{t("profile.noCommunity")}</p>
           ) : (
             <ul className="space-y-2">
               {communities.map((c) => (
@@ -54,7 +58,7 @@ export function Profile() {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-ink">{c.name}</p>
                     <p className="truncate text-xs text-muted">
-                      {c.memberCount} Mitglieder
+                      {t("profile.members", { count: c.memberCount })}
                       {c.context ? ` · ${c.context}` : ""}
                     </p>
                   </div>
@@ -64,9 +68,7 @@ export function Profile() {
           )}
 
           {communities.length > 1 && (
-            <p className="mt-3 text-xs text-faint">
-              Deine Matches kommen aus allen deinen Communities zusammen.
-            </p>
+            <p className="mt-3 text-xs text-faint">{t("profile.poolHint")}</p>
           )}
         </Card>
 
@@ -75,12 +77,14 @@ export function Profile() {
           profileRead={user?.linkedinProfileRead ?? false}
         />
 
+        <LanguageCard />
+
         <div className="pt-2">
           <Badge tone="neutral">CoMatch v0.1</Badge>
         </div>
 
         <Button variant="secondary" fullWidth onClick={signOut}>
-          Abmelden
+          {t("profile.signOut")}
         </Button>
       </div>
     </>
@@ -90,7 +94,8 @@ export function Profile() {
 /** Avatar, name and role/company — with an inline form to edit name, role,
  *  company and bio. */
 function ProfileCard({ user }: { user: AuthUser | null }) {
-  const displayName = user?.name ?? user?.email ?? "Du";
+  const { t } = useTranslation();
+  const displayName = user?.name ?? user?.email ?? t("profile.you");
   const subtitle = [user?.role, user?.company].filter(Boolean).join(" · ");
 
   const [editing, setEditing] = useState(false);
@@ -119,7 +124,7 @@ function ProfileCard({ user }: { user: AuthUser | null }) {
       setEditing(false);
     } catch (err) {
       console.error("[profile] save failed", err);
-      setError("Speichern fehlgeschlagen. Bitte erneut versuchen.");
+      setError(t("profile.saveError"));
     } finally {
       setBusy(false);
     }
@@ -132,14 +137,14 @@ function ProfileCard({ user }: { user: AuthUser | null }) {
         <div className="min-w-0 flex-1">
           <h2 className="truncate font-semibold text-ink">{displayName}</h2>
           <p className="truncate text-sm text-muted">
-            {subtitle || "Profil noch nicht vervollständigt"}
+            {subtitle || t("profile.incomplete")}
           </p>
           {!editing && (
             <button
               onClick={startEdit}
               className="mt-1 text-sm font-medium text-brand-600"
             >
-              Profil bearbeiten
+              {t("profile.edit")}
             </button>
           )}
         </div>
@@ -148,31 +153,31 @@ function ProfileCard({ user }: { user: AuthUser | null }) {
       {editing && (
         <div className="mt-4 space-y-3 border-t border-border pt-4">
           <Input
-            label="Name"
+            label={t("profile.name")}
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            placeholder="Dein Name"
+            placeholder={t("profile.namePlaceholder")}
           />
           <Input
-            label="Rolle"
+            label={t("profile.role")}
             value={form.role}
             onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
-            placeholder="z. B. Frontend-Entwicklerin"
+            placeholder={t("profile.rolePlaceholder")}
           />
           <Input
-            label="Unternehmen"
+            label={t("profile.company")}
             value={form.company}
             onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
-            placeholder="z. B. ACME GmbH"
+            placeholder={t("profile.companyPlaceholder")}
           />
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-ink-soft">
-              Über mich
+              {t("profile.bio")}
             </span>
             <textarea
               value={form.bio}
               onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
-              placeholder="Ein paar Sätze über dich – sichtbar auf deiner Match-Detailseite."
+              placeholder={t("profile.bioPlaceholder")}
               rows={3}
               maxLength={500}
               className="w-full resize-none rounded-md border border-border bg-surface px-3.5 py-2 text-[15px] text-ink shadow-xs transition-colors placeholder:text-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
@@ -183,10 +188,10 @@ function ProfileCard({ user }: { user: AuthUser | null }) {
 
           <div className="flex gap-2">
             <Button size="sm" disabled={!form.name.trim() || busy} onClick={save}>
-              {busy ? "Speichere…" : "Speichern"}
+              {busy ? t("common.saving") : t("common.save")}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
-              Abbrechen
+              {t("common.cancel")}
             </Button>
           </div>
         </div>
@@ -198,6 +203,44 @@ function ProfileCard({ user }: { user: AuthUser | null }) {
 /** Add or change the LinkedIn URL. Saving requires data-processing consent and
  *  re-reads the profile via the API. A badge shows whether the profile behind
  *  the saved URL was actually read. */
+/** Language switcher — persists the explicit choice locally (detector cache)
+ *  and server-side (for outgoing emails). */
+function LanguageCard() {
+  const { t } = useTranslation();
+  const active = currentLocale();
+
+  const choose = (locale: Locale) => {
+    if (locale === active) return;
+    void i18n.changeLanguage(locale);
+    // Fire-and-forget: the UI switches immediately either way.
+    apiSetLocale(locale).catch((err) =>
+      console.error("[profile] locale save failed", err),
+    );
+  };
+
+  return (
+    <Card className="flex items-center justify-between p-4">
+      <p className="text-sm font-medium text-ink">{t("profile.language")}</p>
+      <div className="grid grid-cols-2 gap-1 rounded-lg border border-border bg-surface-2 p-1">
+        {(["de", "en"] as const).map((locale) => (
+          <button
+            key={locale}
+            onClick={() => choose(locale)}
+            className={cn(
+              "rounded-md px-3 py-1 text-sm font-medium transition-all",
+              active === locale
+                ? "bg-surface text-ink shadow-sm"
+                : "text-muted hover:text-ink-soft",
+            )}
+          >
+            {locale === "de" ? "Deutsch" : "English"}
+          </button>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 function LinkedinCard({
   currentUrl,
   profileRead,
@@ -205,6 +248,7 @@ function LinkedinCard({
   currentUrl: string | null;
   profileRead: boolean;
 }) {
+  const { t } = useTranslation();
   const [url, setUrl] = useState(currentUrl ?? "");
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -222,26 +266,17 @@ function LinkedinCard({
       refreshUser();
       setConsent(false);
       if (res.profileFetched) {
-        setStatus({
-          ok: true,
-          text: "Profil erfolgreich ausgelesen. Deine Skill-Vorschläge werden neu erstellt.",
-        });
+        setStatus({ ok: true, text: t("profile.linkedinSuccess") });
       } else if (res.reason === "unipile_not_configured") {
-        setStatus({
-          ok: false,
-          text: "URL gespeichert – der Profil-Import ist derzeit deaktiviert.",
-        });
+        setStatus({ ok: false, text: t("profile.linkedinDisabled") });
       } else {
-        setStatus({
-          ok: false,
-          text: "URL gespeichert, aber das Profil konnte nicht ausgelesen werden. Bitte prüfe die URL und versuche es erneut.",
-        });
+        setStatus({ ok: false, text: t("profile.linkedinFetchFailed") });
       }
     } catch (err) {
       const msg =
         err instanceof ApiError && err.status === 400
-          ? "Bitte gib eine gültige LinkedIn-URL ein."
-          : "Speichern fehlgeschlagen. Bitte erneut versuchen.";
+          ? t("profile.linkedinInvalid")
+          : t("profile.linkedinError");
       setStatus({ ok: false, text: msg });
     } finally {
       setBusy(false);
@@ -255,7 +290,7 @@ function LinkedinCard({
         <p className="text-sm font-medium text-ink">LinkedIn</p>
         {currentUrl && (
           <Badge tone={profileRead ? "success" : "warning"} className="ml-auto">
-            {profileRead ? "Profil ausgelesen" : "Nicht ausgelesen"}
+            {profileRead ? t("profile.linkedinRead") : t("profile.linkedinNotRead")}
           </Badge>
         )}
       </div>
@@ -263,7 +298,7 @@ function LinkedinCard({
       <Input
         value={url}
         onChange={(e) => setUrl(e.target.value)}
-        placeholder="linkedin.com/in/deinname"
+        placeholder={t("profile.linkedinPlaceholder")}
         inputMode="url"
         autoCapitalize="none"
       />
@@ -276,10 +311,7 @@ function LinkedinCard({
             onChange={(e) => setConsent(e.target.checked)}
             className="mt-0.5 h-4 w-4 shrink-0 accent-brand-600"
           />
-          <span>
-            Ich stimme zu, dass mein öffentliches LinkedIn-Profil ausgelesen,
-            verarbeitet und gespeichert wird.
-          </span>
+          <span>{t("profile.linkedinConsent")}</span>
         </label>
       )}
 
@@ -288,7 +320,11 @@ function LinkedinCard({
       )}
 
       <Button size="sm" disabled={!canSave} onClick={save}>
-        {busy ? "Speichere…" : currentUrl ? "Aktualisieren" : "Verbinden"}
+        {busy
+          ? t("common.saving")
+          : currentUrl
+            ? t("profile.linkedinUpdate")
+            : t("profile.linkedinConnect")}
       </Button>
     </Card>
   );

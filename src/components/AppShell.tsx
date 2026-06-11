@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { NavLink, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { cn } from "../lib/cn";
 import { IconSparkles, IconUser, IconUsers } from "./icons";
 
@@ -22,17 +23,18 @@ export function AppShell({ children }: { children: ReactNode }) {
 // /scan is reachable via the profile screen ("Beitreten") and as the automatic
 // onboarding landing page — it doesn't need a permanent nav slot.
 const NAV = [
-  { to: "/matches", label: "Matches", Icon: IconSparkles },
-  { to: "/skills", label: "Skills", Icon: IconUsers },
-  { to: "/profile", label: "Profil", Icon: IconUser },
+  { to: "/matches", labelKey: "nav.matches", Icon: IconSparkles },
+  { to: "/skills", labelKey: "nav.skills", Icon: IconUsers },
+  { to: "/profile", labelKey: "nav.profile", Icon: IconUser },
 ];
 
 function BottomNav() {
   const { pathname } = useLocation();
+  const { t } = useTranslation();
   return (
     <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[440px] border-t border-border bg-surface/90 backdrop-blur-md">
       <div className="flex items-stretch justify-around px-2 pt-1.5">
-        {NAV.map(({ to, label, Icon }) => {
+        {NAV.map(({ to, labelKey, Icon }) => {
           const active = pathname.startsWith(to);
           return (
             <NavLink
@@ -51,7 +53,7 @@ function BottomNav() {
                 width={22}
                 height={22}
               />
-              {label}
+              {t(labelKey)}
             </NavLink>
           );
         })}
