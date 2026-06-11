@@ -11,10 +11,23 @@ export function Matches() {
   const status = useMatchesStatus();
   const { communities } = useMyCommunities();
 
-  // The pool can change while the app is open (new community, edited skills),
-  // so re-fetch on every visit; cached data stays visible meanwhile.
+  // The pool can change while the app is open (new community, edited skills,
+  // incoming requests), so re-fetch on every visit and then poll every 30s
+  // while the page is open — but only when the tab is actually visible.
+  // Cached data stays visible during each refresh.
   useEffect(() => {
     void refreshMatches();
+    const tick = () => {
+      if (document.visibilityState === "visible") void refreshMatches();
+    };
+    const interval = setInterval(tick, 30_000);
+    // Refresh immediately when the user returns to the tab instead of
+    // waiting for the next interval.
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", tick);
+    };
   }, []);
 
   const subtitle =

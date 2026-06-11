@@ -28,7 +28,10 @@ function load(): Promise<void> {
     })
     .catch((err) => {
       console.error("[matches] load failed", err);
-      status = "error";
+      // A failed background refresh (polling) must not replace an already
+      // visible list with the error screen — only error out when there is
+      // nothing to show yet.
+      if (state.length === 0) status = "error";
       emit();
     })
     .finally(() => {
