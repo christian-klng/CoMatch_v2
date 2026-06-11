@@ -81,7 +81,7 @@ export function ConnectAction({
           disabled={busy}
           onClick={() => run(requestConnection)}
         >
-          <IconLink width={16} height={16} /> Verbinden
+          <IconLink width={16} height={16} /> Anfragen
         </Button>
       );
   }

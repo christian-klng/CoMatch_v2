@@ -1,5 +1,6 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMatch } from "../lib/matchStore";
+import { cn } from "../lib/cn";
 import { Avatar } from "../components/ui/Avatar";
 import { Badge } from "../components/ui/Badge";
 import { ConnectAction } from "../components/ConnectAction";
@@ -15,6 +16,8 @@ export function MatchDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const person = useMatch(id);
+  // Identity (name + photo) is revealed only once both sides are connected.
+  const hidden = person != null && person.connection !== "connected";
 
   if (!person) {
     return (
@@ -47,17 +50,29 @@ export function MatchDetail() {
               src={person.avatarUrl}
               name={person.name}
               size="xl"
-              className="ring-4 ring-surface"
+              className={cn("ring-4 ring-surface", hidden && "blur-[5px]")}
             />
           </div>
           <div className="absolute right-5 top-5">
             <ScoreRing score={person.matchScore} />
           </div>
 
-          <h1 className="text-xl font-semibold text-ink">{person.name}</h1>
+          <h1
+            className={cn(
+              "text-xl font-semibold text-ink",
+              hidden && "select-none blur-[3px]"
+            )}
+          >
+            {person.name}
+          </h1>
           {person.role && <p className="text-sm text-ink-soft">{person.role}</p>}
           {person.company && (
             <p className="text-sm text-muted">{person.company}</p>
+          )}
+          {hidden && (
+            <p className="mt-1 text-xs text-faint">
+              Name und Foto werden sichtbar, sobald ihr verbunden seid.
+            </p>
           )}
 
           {person.bio && (

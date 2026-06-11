@@ -4,6 +4,13 @@ import { type AuthEnv, requireAuth } from "../auth.js";
 
 export const matches = new Hono<AuthEnv>();
 
+/** Anonymised display name for not-yet-connected matches: first letter only.
+ *  Masked server-side on purpose — the real name must not reach the client. */
+function maskName(name: string | null): string {
+  const first = (name ?? "").trim().charAt(0).toUpperCase();
+  return `${first || "?"}•••`;
+}
+
 // GET /api/matches — the logged-in user's matches across ALL their communities.
 // Candidates are everyone who shares at least one community with the viewer
 // (deduplicated), scored against the viewer's seeks/offers. A user in several
@@ -91,12 +98,16 @@ matches.get("/", requireAuth, async (c) => {
       else connection = "incoming";
     }
 
+    // Identity stays hidden until both sides confirmed the connection — the
+    // match itself works via skills, not via the person's name.
+    const isConnected = connection === "connected";
+
     return {
       id: u.id,
-      name: u.name,
+      name: isConnected ? u.name : maskName(u.name),
       role: u.role,
       company: u.company ?? undefined,
-      avatarUrl: u.avatarUrl,
+      avatarUrl: isConnected ? u.avatarUrl : null,
       bio: u.bio ?? undefined,
       attributes: u.attributes,
       seeks,

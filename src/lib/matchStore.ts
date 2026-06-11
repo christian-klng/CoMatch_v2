@@ -76,6 +76,8 @@ export async function requestConnection(id: string): Promise<void> {
     // Server may answer "connected" (the other side had already asked us).
     const { status: result } = await apiRequestConnection(id);
     mutate(id, result);
+    // Once connected, the server reveals name + photo — re-fetch to show them.
+    if (result === "connected") await refreshMatches();
   } catch (err) {
     console.error("[connections] request failed", err);
     mutate(id, prev);
@@ -88,6 +90,8 @@ export async function acceptConnection(id: string): Promise<void> {
   mutate(id, "connected");
   try {
     await apiAcceptConnection(id);
+    // Once connected, the server reveals name + photo — re-fetch to show them.
+    await refreshMatches();
   } catch (err) {
     console.error("[connections] accept failed", err);
     mutate(id, prev);

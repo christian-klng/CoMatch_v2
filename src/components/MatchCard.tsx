@@ -4,19 +4,33 @@ import { Card } from "./ui/Card";
 import { Badge } from "./ui/Badge";
 import { Avatar } from "./ui/Avatar";
 import { ConnectionBadge } from "./ConnectAction";
+import { cn } from "../lib/cn";
 import { ScoreRing } from "./ScoreRing";
 import { IconGift, IconSearch } from "./icons";
 
 export function MatchCard({ person }: { person: Person }) {
+  // Identity (name + photo) is revealed only once both sides are connected;
+  // until then the server sends masked data and we render it pixelated.
+  const hidden = person.connection !== "connected";
   return (
     <Card className="overflow-hidden transition-shadow hover:shadow-md">
       <Link to={`/matches/${person.id}`} className="block p-4">
         <div className="flex items-start gap-3.5">
-          <Avatar src={person.avatarUrl} name={person.name} size="lg" />
+          <Avatar
+            src={person.avatarUrl}
+            name={person.name}
+            size="lg"
+            className={hidden ? "blur-[3px]" : undefined}
+          />
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <h3 className="truncate font-semibold text-ink">
+                <h3
+                  className={cn(
+                    "truncate font-semibold text-ink",
+                    hidden && "select-none blur-[2px]"
+                  )}
+                >
                   {person.name}
                 </h3>
                 {person.role && (
