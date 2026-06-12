@@ -6,6 +6,7 @@ import { Badge } from "./ui/Badge";
 import { Avatar } from "./ui/Avatar";
 import { ConnectionBadge } from "./ConnectAction";
 import { cn } from "../lib/cn";
+import { CONNECTION_GATING } from "../lib/featureFlags";
 import { ScoreRing } from "./ScoreRing";
 import { IconGift, IconSearch } from "./icons";
 
@@ -13,7 +14,8 @@ export function MatchCard({ person }: { person: Person }) {
   const { t } = useTranslation();
   // Identity (name + photo) is revealed only once both sides are connected;
   // until then the server sends masked data and we render it pixelated.
-  const hidden = person.connection !== "connected";
+  // (No-op while the gating feature is switched off — see featureFlags.)
+  const hidden = CONNECTION_GATING && person.connection !== "connected";
   return (
     <Card className="overflow-hidden transition-shadow hover:shadow-md">
       <Link to={`/matches/${person.id}`} className="block p-4">
@@ -76,7 +78,7 @@ export function MatchCard({ person }: { person: Person }) {
             <Badge key={a}>{a}</Badge>
           ))}
         </div>
-        <ConnectionBadge status={person.connection} />
+        {CONNECTION_GATING && <ConnectionBadge status={person.connection} />}
       </div>
     </Card>
   );

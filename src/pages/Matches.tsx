@@ -5,6 +5,7 @@ import { MatchCard } from "../components/MatchCard";
 import { Badge } from "../components/ui/Badge";
 import { refreshMatches, useMatches, useMatchesStatus } from "../lib/matchStore";
 import { useMyCommunities } from "../lib/community";
+import { CONNECTION_GATING } from "../lib/featureFlags";
 import { IconSparkles } from "../components/icons";
 
 export function Matches() {
@@ -58,7 +59,7 @@ export function Matches() {
       />
 
       <div className="space-y-4 px-5 py-5">
-        {incoming.length > 0 && (
+        {CONNECTION_GATING && incoming.length > 0 && (
           <div className="rounded-xl border border-warning/30 bg-warning-soft/50 px-4 py-3 text-sm text-warning">
             <Trans
               i18nKey="matches.incoming"

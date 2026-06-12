@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { pool } from "../db.js";
 import { type AuthEnv, requireAuth } from "../auth.js";
 import { resolveAvatarUrl } from "../avatars.js";
+import { CONNECTION_GATING } from "../featureFlags.js";
 
 export const matches = new Hono<AuthEnv>();
 
@@ -108,15 +109,16 @@ matches.get("/", requireAuth, async (c) => {
     }
 
     // Identity stays hidden until both sides confirmed the connection — the
-    // match itself works via skills, not via the person's name.
-    const isConnected = connection === "connected";
+    // match itself works via skills, not via the person's name. While the
+    // gating feature is switched off (test phase), everyone is revealed.
+    const reveal = !CONNECTION_GATING || connection === "connected";
 
     return {
       id: u.id,
-      name: isConnected ? u.name : maskName(u.name),
+      name: reveal ? u.name : maskName(u.name),
       role: u.role,
       company: u.company ?? undefined,
-      avatarUrl: isConnected ? resolveAvatarUrl(c, u) : null,
+      avatarUrl: reveal ? resolveAvatarUrl(c, u) : null,
       bio: u.bio ?? undefined,
       attributes: u.attributes,
       seeks,

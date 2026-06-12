@@ -40,6 +40,10 @@ Vierter Coolify-Service: Postgres (nur intern erreichbar, keine öffentliche Dom
   Frontend — beibehalten.
 - Admin-Routen (`api/src/routes/admin.ts`) sind bewusst noch **ohne Auth**
   (Pre-Launch); nicht öffentlich verlinken.
+- **Feature-Flag `CONNECTION_GATING`** (`api/src/featureFlags.ts` +
+  `src/lib/featureFlags.ts`, müssen synchron sein): aktuell `false` für die
+  Testphase — Anfrage-Flow und Namens-/Foto-Maskierung sind ausgeblendet,
+  der Code bleibt erhalten. Zum Reaktivieren beide auf `true` flippen.
 
 ## Deployment (Coolify, manuell durch Christian)
 

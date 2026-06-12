@@ -7,6 +7,7 @@ import { Badge } from "../components/ui/Badge";
 import { Card } from "../components/ui/Card";
 import { ConnectAction } from "../components/ConnectAction";
 import { ScoreRing } from "../components/ScoreRing";
+import { CONNECTION_GATING } from "../lib/featureFlags";
 import {
   IconArrowLeft,
   IconGift,
@@ -20,7 +21,9 @@ export function MatchDetail() {
   const navigate = useNavigate();
   const person = useMatch(id);
   // Identity (name + photo) is revealed only once both sides are connected.
-  const hidden = person != null && person.connection !== "connected";
+  // (No-op while the gating feature is switched off — see featureFlags.)
+  const hidden =
+    CONNECTION_GATING && person != null && person.connection !== "connected";
 
   if (!person) {
     return (
@@ -88,9 +91,11 @@ export function MatchDetail() {
             ))}
           </div>
 
-          <div className="mt-5">
-            <ConnectAction person={person} size="md" />
-          </div>
+          {CONNECTION_GATING && (
+            <div className="mt-5">
+              <ConnectAction person={person} size="md" />
+            </div>
+          )}
         </div>
 
         {/* Skills detail */}
@@ -110,12 +115,14 @@ export function MatchDetail() {
             highlight={person.matchedOn.theyOffer}
           />
 
-          <div className="rounded-xl border border-border bg-surface-2/60 p-4 text-sm text-muted">
-            <p className="flex items-center gap-2 font-medium text-ink-soft">
-              <IconLink width={15} height={15} /> {t("matchDetail.afterConnectTitle")}
-            </p>
-            <p className="mt-1">{t("matchDetail.afterConnectBody")}</p>
-          </div>
+          {CONNECTION_GATING && (
+            <div className="rounded-xl border border-border bg-surface-2/60 p-4 text-sm text-muted">
+              <p className="flex items-center gap-2 font-medium text-ink-soft">
+                <IconLink width={15} height={15} /> {t("matchDetail.afterConnectTitle")}
+              </p>
+              <p className="mt-1">{t("matchDetail.afterConnectBody")}</p>
+            </div>
+          )}
         </div>
       </div>
     </>
