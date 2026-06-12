@@ -44,6 +44,8 @@ Vierter Coolify-Service: Postgres (nur intern erreichbar, keine öffentliche Dom
   `src/lib/featureFlags.ts`, müssen synchron sein): aktuell `false` für die
   Testphase — Anfrage-Flow und Namens-/Foto-Maskierung sind ausgeblendet,
   der Code bleibt erhalten. Zum Reaktivieren beide auf `true` flippen.
+  Ebenfalls Testphase: `MAX_VISIBLE_MATCHES = 4` begrenzt die Matches-Liste
+  (gleiche Frontend-Datei, reine Anzeige-Begrenzung).
 
 ## Deployment (Coolify, manuell durch Christian)
 

@@ -1,22 +1,26 @@
 # CoMatch — Deployment & lokale Entwicklung
 
-Architektur: **Frontend (SPA) → API (Hono) → Postgres**. Der Browser spricht
-nie direkt mit der DB. Ein Mono-Repo, ein git-Repo, drei Coolify-Services.
+Architektur: **Frontend (SPA) + Admin (SPA) → API (Hono) → Postgres**. Der
+Browser spricht nie direkt mit der DB. Ein Mono-Repo, ein git-Repo
+(`github.com/christian-klng/CoMatch_v2`), **vier Coolify-Services**.
 
 ```
-Browser ── HTTPS ──> Frontend (nginx static)   app.comatch...
+Browser ── HTTPS ──> Frontend (nginx static)   comatch.startup-incubator.berlin
    │
-   └──── /api ──────> API (Hono, :3000)         api.comatch...
-                          │
-                          └──> Postgres (:5432, intern)
+   ├──── HTTPS ────> Admin (nginx static)      (separate Domain, intern halten!)
+   │
+   └──── /api ─────> API (Hono, :3000)         comatch-api.startup-incubator.berlin
+                         │
+                         └──> Postgres (:5432, nur intern)
 ```
 
 ---
 
-## 1. Lokal entwickeln (der normale Tag)
+## 1. Lokal entwickeln
 
 ```bash
-# 1. Postgres starten
+# 1. Postgres starten (braucht Docker; auf Christians Mac nicht vorhanden —
+#    dort gegen die Coolify-DB oder per Review-Umgebung arbeiten)
 docker compose up -d
 
 # 2. API einrichten + migrieren + starten
@@ -30,68 +34,62 @@ npm run dev                   # API auf http://localhost:3000
 cp .env.example .env          # VITE_API_URL=http://localhost:3000
 npm install
 npm run dev                   # SPA auf http://localhost:5173
+
+# 4. Admin (optional, neues Terminal)
+cd admin && npm install && npm run dev
 ```
 
-Smoke-Test der API:
+Smoke-Test der API (Matches/me-Endpoints brauchen ein Bearer-JWT aus dem
+Magic-Link-Login):
 ```bash
 curl localhost:3000/health
 curl localhost:3000/api/skills
-# Anna in der Demo-Community sieht ihre Matches:
-curl "localhost:3000/api/matches?viewer=00000000-0000-0000-0000-0000000000a1&community=00000000-0000-0000-0000-0000000000c1"
 ```
+Ohne SMTP-Konfiguration loggt die API den Magic-Link in die Konsole — damit
+lässt sich lokal einloggen.
 
 ---
 
-## 2. Auf Coolify deployen (einmalig einrichten)
+## 2. Coolify-Setup (Stand Juni 2026)
 
-Voraussetzung: Repo liegt auf GitHub (siehe unten), Coolify ist mit dem GitHub
-verbunden. **Nicht auf dem Server editieren** — Coolify deployt bei jedem Push.
+Coolify deployt bei jedem Push auf `main`. **Nicht auf dem Server editieren.**
+Christian stößt Deploys manuell an.
 
 ### a) Postgres-Service
-- Coolify → Project → **+ New → Database → PostgreSQL 17**.
-- Coolify zeigt dir die **interne Connection-URL** (`postgres://...@<host>:5432/...`).
-  Die kommt gleich in die API als `DATABASE_URL`.
+- PostgreSQL, nur intern erreichbar. Interne Connection-URL → `DATABASE_URL`
+  der API.
 
-### b) API-Service
-- **+ New → Application → from GitHub repo**, Branch `main`.
-- **Base Directory:** `/api`  ·  **Build Pack:** Dockerfile.
-- Environment:
-  - `DATABASE_URL` = interne URL aus Schritt (a)
-  - `CORS_ORIGIN` = die Frontend-Domain (z. B. `https://app.comatch.example`)
-  - `PORT` = `3000`
-- **Port** auf 3000 stellen, Health-Check-Pfad `/health`.
-- Domain setzen, z. B. `api.comatch.example`.
-- Migrationen anstoßen: einmalig im API-Container-Terminal
-  `npm run migrate:prod` (oder als Coolify "post-deployment command").
+### b) API-Service — `comatch-api.startup-incubator.berlin`
+- **Base Directory:** `/api` · **Build Pack:** Dockerfile · Port 3000,
+  Health-Check `/health`.
+- **Migrationen laufen automatisch** vor dem Serverstart (Dockerfile-CMD führt
+  `migrate.js` aus, forward-only & idempotent) — kein manueller Schritt mehr.
+- Environment (siehe `api/.env.example` für alle Variablen):
+  - `DATABASE_URL` — interne URL aus (a)
+  - `CORS_ORIGIN` — kommagetrennt: Frontend- **und** Admin-Origin
+  - `JWT_SECRET`, `APP_URL` (Frontend-URL, für Magic-Link-Ziele)
+  - `SMTP_HOST/PORT/USER/PASS/FROM` (Magic-Link-Mails)
+  - `MISTRAL_API_KEY` (+ optional `MISTRAL_MODEL`) — Skill-Vorschläge &
+    Label-Übersetzung
+  - `UNIPILE_DSN`, `UNIPILE_API_KEY`, `UNIPILE_ACCOUNT_ID` — LinkedIn-Import
 
-### c) Frontend-Service
-- **+ New → Application → from GitHub repo**, gleicher Branch.
-- **Base Directory:** `/` (Root)  ·  **Build Pack:** Dockerfile.
-- Build-Arg / Env: `VITE_API_URL` = `https://api.comatch.example`
-  (wird zur Build-Zeit eingebacken!).
-- **Port** auf 80, Domain z. B. `app.comatch.example`.
+### c) Frontend-Service — `comatch.startup-incubator.berlin`
+- **Base Directory:** `/` (Root) · Dockerfile · Port 80.
+- **Build-Arg** `VITE_API_URL` = API-Domain (wird zur Build-Zeit eingebacken —
+  Änderung braucht Rebuild, kein Restart).
 
-### d) Danach
-Jeder `git push` auf `main` → Coolify baut & deployt automatisch.
-
----
-
-## 3. GitHub-Remote anlegen (noch offen — von dir)
-
-Das Repo ist lokal initialisiert, aber hat noch kein Remote:
-
-```bash
-# Repo auf GitHub anlegen (via gh CLI):
-gh repo create comatch --private --source=. --remote=origin --push
-# ODER manuell:
-git remote add origin git@github.com:<user>/comatch.git
-git push -u origin main
-```
+### d) Admin-Service
+- **Base Directory:** `/admin` · Dockerfile bzw. Static-Build · Port 80.
+- **Build-Args:** `VITE_API_URL` (wie Frontend) und optional `VITE_APP_URL`
+  (Frontend-Basis für die Join-Links; Default ist die Prod-Domain).
+- ⚠️ Admin-API-Routen sind noch **ohne Auth** — Domain nicht öffentlich
+  verlinken, idealerweise per Coolify-Basic-Auth schützen.
 
 ---
 
 ## Offene Punkte vor „echtem" Betrieb
-- **Auth ist noch Dummy** (`src/pages/Login.tsx`). Bis dahin sind alle Daten offen.
-- **Frontend nutzt noch Mockdaten** — Umstellung auf die API ist der nächste Schritt.
-- **QR-Codes** sind noch unsignierte Raw-Join-Codes (siehe `types.ts`-Kommentar).
-- **DSGVO / Sichtbarkeitsregeln** noch nicht umgesetzt.
+- **Admin-Auth** fehlt (s. o.).
+- **Feature-Flag `CONNECTION_GATING`** ist für die Testphase `false`
+  (Anfrage-Flow + Namens-/Foto-Maskierung aus) — vor echtem Betrieb beide
+  Flags (`api/src/featureFlags.ts`, `src/lib/featureFlags.ts`) auf `true`.
+- **DSGVO / Sichtbarkeitsregeln** noch nicht vollständig umgesetzt.
