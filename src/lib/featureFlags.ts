@@ -6,3 +6,7 @@
 // that depends on it (blurred avatars/names, connect buttons, status badges,
 // the incoming-requests banner).
 export const CONNECTION_GATING: boolean = false;
+
+// Cap for the matches list during the test phase — only the top N matches
+// are rendered (and counted in the header badge).
+export const MAX_VISIBLE_MATCHES = 4;

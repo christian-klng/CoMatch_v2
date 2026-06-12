@@ -5,7 +5,7 @@ import { MatchCard } from "../components/MatchCard";
 import { Badge } from "../components/ui/Badge";
 import { refreshMatches, useMatches, useMatchesStatus } from "../lib/matchStore";
 import { useMyCommunities } from "../lib/community";
-import { CONNECTION_GATING } from "../lib/featureFlags";
+import { CONNECTION_GATING, MAX_VISIBLE_MATCHES } from "../lib/featureFlags";
 import { IconSparkles } from "../components/icons";
 
 export function Matches() {
@@ -44,7 +44,9 @@ export function Matches() {
       Number(b.connection === "incoming") - Number(a.connection === "incoming") ||
       b.matchScore - a.matchScore,
   );
-  const incoming = sorted.filter((m) => m.connection === "incoming");
+  // Test phase: render only the top N (badge counts what's rendered).
+  const shown = sorted.slice(0, MAX_VISIBLE_MATCHES);
+  const incoming = shown.filter((m) => m.connection === "incoming");
 
   return (
     <>
@@ -53,7 +55,7 @@ export function Matches() {
         subtitle={subtitle}
         right={
           <Badge tone="brand">
-            <IconSparkles width={13} height={13} /> {sorted.length}
+            <IconSparkles width={13} height={13} /> {shown.length}
           </Badge>
         }
       />
@@ -73,11 +75,11 @@ export function Matches() {
           <LoadingState />
         ) : status === "error" ? (
           <ErrorState />
-        ) : sorted.length === 0 ? (
+        ) : shown.length === 0 ? (
           <EmptyState />
         ) : (
           <div className="space-y-3">
-            {sorted.map((person, i) => (
+            {shown.map((person, i) => (
               <div
                 key={person.id}
                 className="animate-rise"
