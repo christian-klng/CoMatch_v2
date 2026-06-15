@@ -7,6 +7,10 @@ export function PrivacyPolicy() {
             Datenschutzerklärung
           </h1>
           <p className="mt-1 text-sm text-muted">Stand: Juni 2026</p>
+          <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-1.5 text-sm font-medium text-ink">
+            <span aria-label="EU-Flagge">🇪🇺</span>
+            100 % verarbeitet und gespeichert in der Europäischen Union
+          </div>
         </div>
 
         <section className="space-y-2">
@@ -18,12 +22,16 @@ export function PrivacyPolicy() {
           <address className="not-italic text-muted">
             Christian Klang
             <br />
+            Hochschule für Wirtschaft und Recht Berlin
+            <br />
+            Badensche Straße 51, 10825 Berlin
+            <br />
             E-Mail:{" "}
             <a
-              href="mailto:christian@xplrs.net"
+              href="mailto:christian.klang@hwr-berlin.de"
               className="text-brand-600 underline"
             >
-              christian@xplrs.net
+              christian.klang@hwr-berlin.de
             </a>
           </address>
         </section>
@@ -115,10 +123,10 @@ export function PrivacyPolicy() {
             gelöscht. Du kannst die Löschung deines Kontos jederzeit per E-Mail
             an{" "}
             <a
-              href="mailto:christian@xplrs.net"
+              href="mailto:christian.klang@hwr-berlin.de"
               className="text-brand-600 underline"
             >
-              christian@xplrs.net
+              christian.klang@hwr-berlin.de
             </a>{" "}
             beantragen.
           </p>
@@ -150,10 +158,10 @@ export function PrivacyPolicy() {
           <p className="text-muted">
             Zur Ausübung deiner Rechte genügt eine E-Mail an{" "}
             <a
-              href="mailto:christian@xplrs.net"
+              href="mailto:christian.klang@hwr-berlin.de"
               className="text-brand-600 underline"
             >
-              christian@xplrs.net
+              christian.klang@hwr-berlin.de
             </a>
             .
           </p>
