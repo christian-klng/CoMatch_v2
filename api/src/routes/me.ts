@@ -264,3 +264,21 @@ me.post("/skill-suggestions", requireAuth, async (c) => {
     return c.json({ error: "generation_failed" }, 502);
   }
 });
+
+// DELETE /api/me/linkedin → remove LinkedIn URL, profile data, avatar and
+// skill suggestions so the user can start fresh or disconnect a wrong account.
+me.delete("/linkedin", requireAuth, async (c) => {
+  await pool.query(
+    `update users
+     set linkedin_url        = null,
+         linkedin_profile    = null,
+         linkedin_consent_at = null,
+         avatar_data         = null,
+         avatar_mime         = null,
+         avatar_url          = null,
+         skill_suggestions   = null
+     where id = $1`,
+    [c.get("userId")],
+  );
+  return c.json({ ok: true });
+});

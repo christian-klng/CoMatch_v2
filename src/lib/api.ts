@@ -130,6 +130,11 @@ export function apiSaveLinkedin(
   );
 }
 
+/** Remove LinkedIn URL, profile data, avatar and skill suggestions. */
+export function apiDeleteLinkedin(): Promise<{ ok: true }> {
+  return sendJson<{ ok: true }>("DELETE", "/api/me/linkedin");
+}
+
 export interface SkillSuggestions {
   seeks: string[];
   offers: string[];

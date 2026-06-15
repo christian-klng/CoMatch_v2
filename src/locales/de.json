@@ -155,6 +155,7 @@
     "linkedinInvalid": "Bitte gib eine gültige LinkedIn-URL ein.",
     "linkedinError": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
     "linkedinUpdate": "Aktualisieren",
+    "linkedinDisconnect": "Verbindung trennen",
     "linkedinConnect": "Verbinden",
     "language": "Sprache",
     "signOut": "Abmelden"

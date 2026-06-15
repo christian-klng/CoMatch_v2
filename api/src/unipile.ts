@@ -11,26 +11,27 @@ const ACCOUNT_ID = process.env.UNIPILE_ACCOUNT_ID; // the connected LinkedIn acc
 
 export const unipileConfigured = Boolean(DSN && API_KEY && ACCOUNT_ID);
 
-/** Extract the LinkedIn public identifier from user input. Accepts a full URL
- *  (with/without https + www), or just the bare handle (optionally prefixed
- *  with "in/"). Returns null if the input isn't a recognisable handle — a typed
- *  name like "Christian Klang" (has a space) is rejected on purpose. */
+/** Extract the LinkedIn public identifier from user input. Accepts:
+ *  - Full URL: linkedin.com/in/handle (with or without https/www)
+ *  - Explicit prefix: in/handle or /in/handle
+ *  Bare words like "Saverio" or "Christian" are rejected — they look like
+ *  names but LinkedIn may have a real profile with that slug. */
 export function linkedinIdentifier(raw: string): string | null {
   const s = raw.trim();
-  const fromUrl = s.match(/linkedin\.com\/in\/([^/?#\s]+)/i);
-  const candidate = fromUrl
-    ? fromUrl[1]
-    : // Bare handle, optionally as "in/handle" or "/in/handle"; reject anything
-      // that still looks like a URL/domain or contains whitespace.
-      !s.includes(".com") && /^(?:\/?in\/)?[\w\-%.]+\/?$/i.test(s)
-      ? s.replace(/^\/?in\//i, "").replace(/\/$/, "")
-      : null;
-  if (!candidate) return null;
-  try {
-    return decodeURIComponent(candidate);
-  } catch {
-    return candidate;
+
+  // Full or protocol-relative URL containing linkedin.com/in/…
+  const urlMatch = s.match(/linkedin\.com\/in\/([^/?#\s]+)/i);
+  if (urlMatch) {
+    try { return decodeURIComponent(urlMatch[1]); } catch { return urlMatch[1]; }
   }
+
+  // Explicit "in/handle" or "/in/handle" prefix only — no bare words.
+  const prefixMatch = s.match(/^\/?in\/([^\s/?#.]+)\/?$/i);
+  if (prefixMatch) {
+    try { return decodeURIComponent(prefixMatch[1]); } catch { return prefixMatch[1]; }
+  }
+
+  return null;
 }
 
 export interface LinkedInProfile {

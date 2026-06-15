@@ -10,7 +10,7 @@ import { Input } from "../components/ui/Input";
 import { Notice } from "../components/ui/Notice";
 import { logout, refreshUser, useAuth } from "../lib/auth";
 import { useMyCommunities } from "../lib/community";
-import { apiSaveLinkedin, apiSetLocale, apiUpdateProfile, ApiError } from "../lib/api";
+import { apiDeleteLinkedin, apiSaveLinkedin, apiSetLocale, apiUpdateProfile, ApiError } from "../lib/api";
 import i18n, { currentLocale, type Locale } from "../i18n";
 import { cn } from "../lib/cn";
 import type { AuthUser } from "../lib/types";
@@ -283,6 +283,21 @@ function LinkedinCard({
     }
   };
 
+  const disconnect = async () => {
+    setBusy(true);
+    setStatus(null);
+    try {
+      await apiDeleteLinkedin();
+      setUrl("");
+      setConsent(false);
+      refreshUser();
+    } catch {
+      setStatus({ ok: false, text: t("profile.linkedinError") });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <Card className="space-y-3 p-4">
       <div className="flex items-center gap-2">
@@ -319,13 +334,20 @@ function LinkedinCard({
         <Notice tone={status.ok ? "success" : "danger"}>{status.text}</Notice>
       )}
 
-      <Button size="sm" disabled={!canSave} onClick={save}>
-        {busy
-          ? t("common.saving")
-          : currentUrl
-            ? t("profile.linkedinUpdate")
-            : t("profile.linkedinConnect")}
-      </Button>
+      <div className="flex gap-2">
+        <Button size="sm" disabled={!canSave} onClick={save}>
+          {busy
+            ? t("common.saving")
+            : currentUrl
+              ? t("profile.linkedinUpdate")
+              : t("profile.linkedinConnect")}
+        </Button>
+        {currentUrl && (
+          <Button size="sm" variant="ghost" disabled={busy} onClick={disconnect}>
+            {t("profile.linkedinDisconnect")}
+          </Button>
+        )}
+      </div>
     </Card>
   );
 }

@@ -155,6 +155,7 @@
     "linkedinInvalid": "Please enter a valid LinkedIn URL.",
     "linkedinError": "Saving failed. Please try again.",
     "linkedinUpdate": "Update",
+    "linkedinDisconnect": "Disconnect",
     "linkedinConnect": "Connect",
     "language": "Language",
     "signOut": "Sign out"
