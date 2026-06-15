@@ -184,33 +184,83 @@ export function UserDetail({ userId, onBack }: { userId: string; onBack: () => v
 
           {/* Skills */}
           <section className="card">
-            <h2>Skills ({user.skills.length})</h2>
+            <h2>Skills</h2>
             {user.skills.length === 0 ? (
               <p className="muted small">Keine Skills gespeichert.</p>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 {(["seek", "offer"] as const).map((kind) => {
                   const items = user.skills.filter((s) => s.kind === kind);
                   if (items.length === 0) return null;
+
+                  const suggSet = new Set<string>(
+                    kind === "seek"
+                      ? (user.skillSuggestions?.seeks ?? [])
+                      : (user.skillSuggestions?.offers ?? []),
+                  );
+                  const fromLinkedin = items.filter((s) => suggSet.has(s.id));
+                  const manual = items.filter((s) => !suggSet.has(s.id));
+
                   return (
                     <div key={kind}>
-                      <p className="faint small" style={{ marginBottom: 4 }}>
-                        {kind === "seek" ? "Sucht" : "Bietet"}
+                      <p style={{ margin: "0 0 6px", fontWeight: 600, fontSize: 14 }}>
+                        {kind === "seek" ? "Ich suche" : "Ich biete"}
+                        <span className="stat-badge">{items.length} gesamt</span>
+                        {user.skillSuggestions && (
+                          <>
+                            <span className="stat-badge linkedin">{fromLinkedin.length} via LinkedIn</span>
+                            <span className="stat-badge manual">{manual.length} manuell</span>
+                          </>
+                        )}
                       </p>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                         {items.map((s) => (
-                          <span key={s.label} className="skill-chip">{s.label}</span>
+                          <span
+                            key={s.id}
+                            className={`skill-chip ${user.skillSuggestions ? (suggSet.has(s.id) ? "from-linkedin" : "manual") : ""}`}
+                            title={user.skillSuggestions ? (suggSet.has(s.id) ? "LinkedIn-Vorschlag übernommen" : "Manuell hinzugefügt") : ""}
+                          >
+                            {s.label}
+                          </span>
                         ))}
                       </div>
                     </div>
                   );
                 })}
+
+                {/* Rejected suggestions */}
+                {user.skillSuggestions && (() => {
+                  const savedIds = new Set(user.skills.map((s) => s.id));
+                  const allSuggIds = [
+                    ...(user.skillSuggestions.seeks ?? []),
+                    ...(user.skillSuggestions.offers ?? []),
+                  ];
+                  const rejected = allSuggIds.filter((id) => !savedIds.has(id));
+                  if (rejected.length === 0) return null;
+                  return (
+                    <div>
+                      <p style={{ margin: "0 0 4px", fontSize: 13, color: "var(--faint)" }}>
+                        LinkedIn-Vorschläge abgelehnt ({rejected.length})
+                      </p>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                        {rejected.map((id) => (
+                          <span key={id} className="skill-chip rejected" title="Vorgeschlagen, aber nicht übernommen">{id}</span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
-            <div className="detail-row" style={{ marginTop: 12 }}>
-              <span className="detail-key">Skill-Vorschläge (KI)</span>
-              <span className="detail-val">{user.hasSkillSuggestions ? "✓ Vorhanden" : <em className="faint">–</em>}</span>
-            </div>
+
+            {user.skillSuggestions && (
+              <p className="faint small" style={{ marginTop: 12 }}>
+                LinkedIn-Vorschläge gespeichert: {(user.skillSuggestions.seeks?.length ?? 0)} Sucht · {(user.skillSuggestions.offers?.length ?? 0)} Bietet
+              </p>
+            )}
+            {!user.skillSuggestions && (
+              <p className="faint small" style={{ marginTop: 8 }}>Kein LinkedIn-Import — Herkunft der Skills nicht bekannt.</p>
+            )}
           </section>
 
           {/* Communities */}

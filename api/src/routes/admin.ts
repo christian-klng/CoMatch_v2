@@ -255,7 +255,7 @@ admin.get("/users/:id", async (c) => {
             (u.linkedin_profile is not null) as "linkedinProfileRead",
             u.avatar_url                 as "avatarUrl",
             (u.avatar_data is not null)  as "hasAvatarData",
-            (u.skill_suggestions is not null) as "hasSkillSuggestions",
+            u.skill_suggestions          as "skillSuggestions",
             u.locale,
             u.created_at                 as "createdAt"
        from users u where u.id = $1`,
@@ -264,8 +264,8 @@ admin.get("/users/:id", async (c) => {
   if (rows.length === 0) return c.json({ error: "not_found" }, 404);
 
   const skills = (
-    await pool.query<{ kind: string; label: string }>(
-      `select us.kind, coalesce(s.label_en, s.label) as label
+    await pool.query<{ kind: string; label: string; id: string }>(
+      `select us.skill_id as id, us.kind, coalesce(s.label_en, s.label) as label
          from user_skills us
          join skills s on s.id = us.skill_id
         where us.user_id = $1

@@ -35,10 +35,12 @@ export interface AdminUserRow {
   communityCount: number;
 }
 
-export interface AdminUserDetail extends AdminUserRow {
+export interface AdminUserDetail extends Omit<AdminUserRow, "hasSkillSuggestions"> {
   bio: string | null;
   linkedinConsentAt: string | null;
+  /** Stored AI suggestions (skill IDs). null = no LinkedIn import done. */
+  skillSuggestions: { seeks: string[]; offers: string[] } | null;
   locale: string | null;
-  skills: { kind: "seek" | "offer"; label: string }[];
+  skills: { kind: "seek" | "offer"; label: string; id: string }[];
   communities: { id: string; name: string }[];
 }
