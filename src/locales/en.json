@@ -27,7 +27,9 @@
       "subtitle": "Enter your email – we'll send you a login link. You'll set up your name and profile afterwards.",
       "haveAccount": "Already registered?",
       "login": "Sign in",
-      "terms": "By signing up you agree to the Terms & Privacy Policy."
+      "privacyPre": "I accept the ",
+      "privacyLink": "Privacy Policy",
+      "privacyPost": " (required)."
     },
     "sent": {
       "title": "Email on its way",

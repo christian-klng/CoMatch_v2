@@ -27,7 +27,9 @@
       "subtitle": "Gib deine E-Mail ein – wir schicken dir einen Login-Link. Deinen Namen und dein Profil legst du danach an.",
       "haveAccount": "Schon registriert?",
       "login": "Anmelden",
-      "terms": "Mit der Registrierung stimmst du den AGB & der Datenschutzerklärung zu."
+      "privacyPre": "Ich akzeptiere die ",
+      "privacyLink": "Datenschutzerklärung",
+      "privacyPost": " (DSGVO-Pflicht)."
     },
     "sent": {
       "title": "E-Mail unterwegs",

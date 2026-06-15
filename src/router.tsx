@@ -15,6 +15,7 @@ import { MatchDetail } from "./pages/MatchDetail";
 import { Profile } from "./pages/Profile";
 import { JoinCommunity } from "./pages/JoinCommunity";
 import { Styleguide } from "./pages/Styleguide";
+import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 
 function Spinner() {
   return (
@@ -108,6 +109,7 @@ export const router = createBrowserRouter([
   // Deep link from shared/printed QR codes — public, routes by auth state.
   { path: "/join/:code", element: <JoinCommunity /> },
   { path: "/styleguide", element: <Styleguide /> },
+  { path: "/datenschutz", element: <PrivacyPolicy /> },
 
   { path: "*", element: <Navigate to="/login" replace /> },
 ]);

@@ -15,6 +15,7 @@ export function Register() {
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,13 +58,30 @@ export function Register() {
             onChange={(e) => setEmail(e.target.value)}
           />
           {error && <Notice>{error}</Notice>}
-          <Button type="submit" fullWidth size="lg" disabled={busy || !email.trim()}>
+          <label className="flex cursor-pointer items-start gap-2.5">
+            <input
+              type="checkbox"
+              checked={privacyAccepted}
+              onChange={(e) => setPrivacyAccepted(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-brand-600"
+            />
+            <span className="text-xs text-muted">
+              {t("auth.register.privacyPre")}
+              <a
+                href="/datenschutz"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand-600 underline"
+              >
+                {t("auth.register.privacyLink")}
+              </a>
+              {t("auth.register.privacyPost")}
+            </span>
+          </label>
+          <Button type="submit" fullWidth size="lg" disabled={busy || !email.trim() || !privacyAccepted}>
             {busy ? t("auth.login.submitting") : t("auth.login.submit")}
             {!busy && <IconArrowRight width={18} height={18} />}
           </Button>
-          <p className="text-center text-xs text-faint">
-            {t("auth.register.terms")}
-          </p>
         </form>
       )}
     </AuthShell>
