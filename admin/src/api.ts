@@ -1,4 +1,4 @@
-import type { AdminCommunity, AdminMember } from "./types";
+import type { AdminCommunity, AdminMember, AdminUserDetail, AdminUserRow } from "./types";
 
 // Base URL of the API, baked in at build time via the VITE_API_URL build-arg
 // (set it in Coolify, same value the frontend uses).
@@ -65,4 +65,28 @@ export function deleteMember(communityId: string, userId: string): Promise<{ ok:
     "DELETE",
     `/api/admin/communities/${communityId}/members/${userId}`,
   );
+}
+
+// --- Users ----------------------------------------------------------------
+export function listUsers(q = ""): Promise<AdminUserRow[]> {
+  const qs = q ? `?q=${encodeURIComponent(q)}` : "";
+  return call<AdminUserRow[]>("GET", `/api/admin/users${qs}`);
+}
+
+export function getUser(id: string): Promise<AdminUserDetail> {
+  return call<AdminUserDetail>("GET", `/api/admin/users/${id}`);
+}
+
+export function updateUser(
+  id: string,
+  patch: {
+    name?: string | null;
+    role?: string | null;
+    company?: string | null;
+    bio?: string | null;
+    linkedinUrl?: string | null;
+    clearLinkedin?: boolean;
+  },
+): Promise<{ ok: true }> {
+  return call<{ ok: true }>("PATCH", `/api/admin/users/${id}`, patch);
 }

@@ -19,3 +19,26 @@ export interface AdminMember {
   /** How many communities this user belongs to (delete removes them everywhere). */
   communityCount: number;
 }
+
+export interface AdminUserRow {
+  id: string;
+  email: string | null;
+  name: string | null;
+  role: string | null;
+  company: string | null;
+  linkedinUrl: string | null;
+  linkedinProfileRead: boolean;
+  avatarUrl: string | null;
+  hasAvatarData: boolean;
+  hasSkillSuggestions: boolean;
+  createdAt: string;
+  communityCount: number;
+}
+
+export interface AdminUserDetail extends AdminUserRow {
+  bio: string | null;
+  linkedinConsentAt: string | null;
+  locale: string | null;
+  skills: { kind: "seek" | "offer"; label: string }[];
+  communities: { id: string; name: string }[];
+}

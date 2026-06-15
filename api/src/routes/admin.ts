@@ -220,6 +220,135 @@ admin.delete("/communities/:id/members/:userId", async (c) => {
   return c.json({ ok: true });
 });
 
+// ── Users ────────────────────────────────────────────────────────────────
+
+// GET /api/admin/users?q=… → search by email or name (max 100)
+admin.get("/users", async (c) => {
+  const q = (c.req.query("q") ?? "").trim();
+  const { rows } = await pool.query(
+    `select u.id, u.email, u.name, u.role, u.company,
+            u.linkedin_url               as "linkedinUrl",
+            (u.linkedin_profile is not null) as "linkedinProfileRead",
+            u.avatar_url                 as "avatarUrl",
+            (u.avatar_data is not null)  as "hasAvatarData",
+            (u.skill_suggestions is not null) as "hasSkillSuggestions",
+            u.created_at                 as "createdAt",
+            (select count(*)::int from community_members m where m.user_id = u.id)
+                                         as "communityCount"
+       from users u
+      where $1 = '' or u.email ilike $2 or u.name ilike $2
+      order by u.created_at desc
+      limit 100`,
+    [q, `%${q}%`],
+  );
+  return c.json(rows);
+});
+
+// GET /api/admin/users/:id → full detail: profile + skills + communities
+admin.get("/users/:id", async (c) => {
+  const id = c.req.param("id");
+
+  const { rows } = await pool.query(
+    `select u.id, u.email, u.name, u.role, u.company, u.bio,
+            u.linkedin_url               as "linkedinUrl",
+            u.linkedin_consent_at        as "linkedinConsentAt",
+            (u.linkedin_profile is not null) as "linkedinProfileRead",
+            u.avatar_url                 as "avatarUrl",
+            (u.avatar_data is not null)  as "hasAvatarData",
+            (u.skill_suggestions is not null) as "hasSkillSuggestions",
+            u.locale,
+            u.created_at                 as "createdAt"
+       from users u where u.id = $1`,
+    [id],
+  );
+  if (rows.length === 0) return c.json({ error: "not_found" }, 404);
+
+  const skills = (
+    await pool.query<{ kind: string; label: string }>(
+      `select us.kind, coalesce(s.label_en, s.label) as label
+         from user_skills us
+         join skills s on s.id = us.skill_id
+        where us.user_id = $1
+        order by us.kind, s.label`,
+      [id],
+    )
+  ).rows;
+
+  const communities = (
+    await pool.query<{ id: string; name: string }>(
+      `select c.id, c.name
+         from community_members m
+         join communities c on c.id = m.community_id
+        where m.user_id = $1
+        order by c.name`,
+      [id],
+    )
+  ).rows;
+
+  return c.json({ ...rows[0], skills, communities });
+});
+
+// PATCH /api/admin/users/:id → overwrite editable fields; null = clear.
+// clearLinkedin: true → wipes linkedin_url, linkedin_profile, avatar, skill_suggestions.
+admin.patch("/users/:id", async (c) => {
+  const id = c.req.param("id");
+  const body = await c.req
+    .json<{
+      name?: string | null;
+      role?: string | null;
+      company?: string | null;
+      bio?: string | null;
+      linkedinUrl?: string | null;
+      clearLinkedin?: boolean;
+    }>()
+    .catch(() => ({}) as Record<string, unknown>);
+
+  const trim = (v: unknown) =>
+    typeof v === "string" ? v.trim() || null : v === null ? null : undefined;
+
+  const name    = trim(body.name);
+  const role    = trim(body.role);
+  const company = trim(body.company);
+  const bio     = trim(body.bio);
+  const linkedinUrl = trim(body.linkedinUrl);
+
+  // Build SET clauses only for fields explicitly included in the request.
+  const sets: string[] = [];
+  const vals: unknown[] = [id];
+  const add = (col: string, val: unknown) => {
+    vals.push(val);
+    sets.push(`${col} = $${vals.length}`);
+  };
+
+  if (name    !== undefined) add("name",        name);
+  if (role    !== undefined) add("role",         role);
+  if (company !== undefined) add("company",      company);
+  if (bio     !== undefined) add("bio",          bio);
+
+  if (body.clearLinkedin) {
+    sets.push(
+      "linkedin_url = null",
+      "linkedin_profile = null",
+      "linkedin_consent_at = null",
+      "avatar_data = null",
+      "avatar_mime = null",
+      "avatar_url = null",
+      "skill_suggestions = null",
+    );
+  } else if (linkedinUrl !== undefined) {
+    add("linkedin_url", linkedinUrl);
+  }
+
+  if (sets.length === 0) return c.json({ error: "nothing_to_update" }, 400);
+
+  const { rowCount } = await pool.query(
+    `update users set ${sets.join(", ")} where id = $1`,
+    vals,
+  );
+  if (!rowCount) return c.json({ error: "not_found" }, 404);
+  return c.json({ ok: true });
+});
+
 // POST /api/admin/skills/translate → one-shot backfill: translate every skill
 // concept that has no English label yet (batched LLM calls). Idempotent —
 // rerunning only picks up whatever is still untranslated. Collisions (the
