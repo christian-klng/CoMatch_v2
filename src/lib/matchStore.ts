@@ -47,6 +47,20 @@ function ensureLoaded() {
   void load();
 }
 
+const POLL_MS = 30_000;
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+function startPolling() {
+  if (pollTimer !== null) return;
+  pollTimer = setInterval(() => void load(), POLL_MS);
+}
+
+function stopPolling() {
+  if (pollTimer === null) return;
+  clearInterval(pollTimer);
+  pollTimer = null;
+}
+
 /** Re-fetch matches — call when entering the matches screen so a grown pool
  *  (new community, changed skills) shows up. Current data stays visible while
  *  the fresh list loads (stale-while-revalidate). */
@@ -101,8 +115,10 @@ export async function acceptConnection(id: string): Promise<void> {
 function subscribe(cb: () => void) {
   ensureLoaded();
   listeners.add(cb);
+  if (listeners.size === 1) startPolling();
   return () => {
     listeners.delete(cb);
+    if (listeners.size === 0) stopPolling();
   };
 }
 
