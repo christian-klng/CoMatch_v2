@@ -38,8 +38,15 @@ Vierter Coolify-Service: Postgres (nur intern erreichbar, keine öffentliche Dom
   localStorage und übersteht den Registrierungs-Umweg (`src/lib/joinCode.ts`).
 - **API-Fehler sind Codes** (`error: "no_profile"`), übersetzt wird nur im
   Frontend — beibehalten.
-- Admin-Routen (`api/src/routes/admin.ts`) sind bewusst noch **ohne Auth**
-  (Pre-Launch); nicht öffentlich verlinken.
+- **Admin-Auth:** `/api/admin/*` ist durch `requireAdmin` geschützt
+  (`api/src/adminAuth.ts`): E-Mail+Passwort-Login über `/api/admin/auth`
+  (`api/src/routes/adminAuth.ts`), eigenes JWT mit `scope: "admin"` (gleiches
+  `SECRET` wie User-Auth, aber nicht auf User-Routen gültig und umgekehrt).
+  Passwörter (scrypt-Hash) liegen in `admin_users` (Migration 012). Admins legt
+  man per CLI an: `cd api && npm run admin:create -- <email> <passwort>` (in Prod
+  `node dist/admincli.js …`), idempotent = auch Passwort-Reset. Login-Routen
+  (`/api/admin/auth`) sind in `index.ts` **vor** `/api/admin` gemountet, damit
+  sie ungeschützt bleiben. Admin-SPA hält das Token im localStorage.
 - **Feature-Flag `CONNECTION_GATING`** (`api/src/featureFlags.ts` +
   `src/lib/featureFlags.ts`, müssen synchron sein): aktuell `false` für die
   Testphase — Anfrage-Flow und Namens-/Foto-Maskierung sind ausgeblendet,

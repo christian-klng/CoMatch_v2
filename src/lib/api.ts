@@ -1,5 +1,5 @@
 import { currentLocale } from "../i18n";
-import type { AdminCommunity, AuthUser, Community, Person } from "./types";
+import type { AuthUser, Community, Person } from "./types";
 
 // Base URL of the API, baked in at build time via the VITE_API_URL build-arg.
 // Empty string falls back to same-origin (only correct if API is reverse-proxied).
@@ -191,30 +191,6 @@ export function apiCommunityByCode(code: string): Promise<Community> {
 /** Join a published community by code. Throws ApiError(404) on an invalid code. */
 export function apiJoinCommunity(code: string): Promise<Community> {
   return postJson<Community>("/api/communities/join", { code });
-}
-
-// --- Admin (no auth yet) --------------------------------------------------
-export function apiAdminListCommunities(): Promise<AdminCommunity[]> {
-  return getJson<AdminCommunity[]>("/api/admin/communities");
-}
-
-export function apiAdminCreateCommunity(input: {
-  name: string;
-  context?: string;
-  published?: boolean;
-}): Promise<AdminCommunity> {
-  return postJson<AdminCommunity>("/api/admin/communities", input);
-}
-
-export function apiAdminUpdateCommunity(
-  id: string,
-  patch: { name?: string; context?: string; published?: boolean },
-): Promise<AdminCommunity> {
-  return sendJson<AdminCommunity>("PATCH", `/api/admin/communities/${id}`, patch);
-}
-
-export function apiAdminDeleteCommunity(id: string): Promise<{ ok: true }> {
-  return sendJson<{ ok: true }>("DELETE", `/api/admin/communities/${id}`);
 }
 
 // --- Auth (magic link) ----------------------------------------------------
