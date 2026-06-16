@@ -1,18 +1,58 @@
 import { useEffect, useState } from "react";
-import type { AdminCommunity, AdminUserRow } from "./types";
+import type { AdminCommunity, AdminSession, AdminUserRow } from "./types";
 import {
+  clearToken,
   createCommunity,
   deleteCommunity,
+  fetchAdminMe,
+  getToken,
   listCommunities,
   listUsers,
   updateCommunity,
+  UnauthorizedError,
 } from "./api";
 import { CommunityDetail } from "./CommunityDetail";
 import { UserDetail } from "./UserDetail";
+import { Login } from "./Login";
 
 type Tab = "communities" | "users";
 
 export function App() {
+  // undefined = checking stored token, null = logged out, object = logged in.
+  const [session, setSession] = useState<AdminSession | null | undefined>(undefined);
+
+  const checkSession = () => {
+    if (!getToken()) {
+      setSession(null);
+      return;
+    }
+    fetchAdminMe()
+      .then(setSession)
+      .catch(() => setSession(null));
+  };
+
+  useEffect(checkSession, []);
+
+  const logout = () => {
+    clearToken();
+    setSession(null);
+  };
+
+  if (session === undefined) {
+    return (
+      <div className="page">
+        <p className="muted">Lädt…</p>
+      </div>
+    );
+  }
+  if (session === null) {
+    return <Login onSuccess={checkSession} />;
+  }
+
+  return <Dashboard admin={session} onLogout={logout} />;
+}
+
+function Dashboard({ admin, onLogout }: { admin: AdminSession; onLogout: () => void }) {
   const [tab, setTab] = useState<Tab>("communities");
 
   // Communities state
@@ -33,11 +73,17 @@ export function App() {
   const [userQuery, setUserQuery] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
+  // A 401 anywhere means the session expired — drop straight back to login.
+  const onError = (e: unknown, fallback: (msg: string) => void, msg: string) => {
+    if (e instanceof UnauthorizedError) onLogout();
+    else fallback(msg);
+  };
+
   const reloadCommunities = () => {
     setCommLoading(true);
     listCommunities()
       .then((rows) => { setCommunities(rows); setCommError(null); })
-      .catch(() => setCommError("Communities konnten nicht geladen werden."))
+      .catch((e) => onError(e, setCommError, "Communities konnten nicht geladen werden."))
       .finally(() => setCommLoading(false));
   };
 
@@ -45,7 +91,7 @@ export function App() {
     setUserLoading(true);
     listUsers(q)
       .then((rows) => { setUsers(rows); setUserError(null); })
-      .catch(() => setUserError("Nutzer konnten nicht geladen werden."))
+      .catch((e) => onError(e, setUserError, "Nutzer konnten nicht geladen werden."))
       .finally(() => setUserLoading(false));
   };
 
@@ -62,8 +108,8 @@ export function App() {
       await createCommunity({ name: name.trim(), context: context.trim() || undefined, published: publishNow });
       setName(""); setContext(""); setPublishNow(true);
       reloadCommunities();
-    } catch {
-      setCommError("Community konnte nicht erstellt werden.");
+    } catch (e) {
+      onError(e, setCommError, "Community konnte nicht erstellt werden.");
     } finally {
       setCreating(false);
     }
@@ -71,13 +117,13 @@ export function App() {
 
   const togglePublished = async (c: AdminCommunity) => {
     try { await updateCommunity(c.id, { published: !c.published }); reloadCommunities(); }
-    catch { setCommError("Status konnte nicht geändert werden."); }
+    catch (e) { onError(e, setCommError, "Status konnte nicht geändert werden."); }
   };
 
   const remove = async (c: AdminCommunity) => {
     if (!window.confirm(`Community „${c.name}" wirklich löschen?`)) return;
     try { await deleteCommunity(c.id); reloadCommunities(); }
-    catch { setCommError("Community konnte nicht gelöscht werden."); }
+    catch (e) { onError(e, setCommError, "Community konnte nicht gelöscht werden."); }
   };
 
   // Drill-down views
@@ -91,9 +137,12 @@ export function App() {
 
   return (
     <div className="page">
-      <header className="head">
+      <header className="head" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
         <h1>CoMatch Admin</h1>
-        <p className="muted">Noch ohne Login (kommt später)</p>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <span className="muted small">{admin.email}</span>
+          <button className="btn" onClick={onLogout}>Abmelden</button>
+        </div>
       </header>
 
       {/* Tab bar */}

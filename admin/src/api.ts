@@ -1,4 +1,4 @@
-import type { AdminCommunity, AdminMember, AdminUserDetail, AdminUserRow } from "./types";
+import type { AdminCommunity, AdminMember, AdminSession, AdminUserDetail, AdminUserRow } from "./types";
 
 // Base URL of the API, baked in at build time via the VITE_API_URL build-arg
 // (set it in Coolify, same value the frontend uses).
@@ -8,14 +8,63 @@ if (!BASE && import.meta.env.PROD) {
   console.warn("[admin] VITE_API_URL is empty — set it as a build arg in Coolify.");
 }
 
+// --- Session token ---------------------------------------------------------
+const TOKEN_KEY = "comatch_admin_token";
+
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+export function setToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+export function clearToken(): void {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+/** Thrown when the API rejects the session (401) — the app drops to login. */
+export class UnauthorizedError extends Error {
+  constructor() {
+    super("unauthorized");
+    this.name = "UnauthorizedError";
+  }
+}
+
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
   const res = await fetch(`${BASE}${path}`, {
     method,
-    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    headers: Object.keys(headers).length ? headers : undefined,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
+  if (res.status === 401) {
+    clearToken();
+    throw new UnauthorizedError();
+  }
   if (!res.ok) throw new Error(`${method} ${path} → ${res.status} ${res.statusText}`);
   return (await res.json()) as T;
+}
+
+// --- Auth ------------------------------------------------------------------
+/** Log in with email + password; stores the session token on success. */
+export async function login(email: string, password: string): Promise<void> {
+  const res = await fetch(`${BASE}/api/admin/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(`Login fehlgeschlagen (${res.status})`);
+  const { token } = (await res.json()) as { token: string };
+  setToken(token);
+}
+
+/** Validate the stored token and return the current admin, or null if none. */
+export function fetchAdminMe(): Promise<AdminSession> {
+  return call<AdminSession>("GET", "/api/admin/auth/me");
 }
 
 export function listCommunities(): Promise<AdminCommunity[]> {

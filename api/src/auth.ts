@@ -10,7 +10,7 @@ if (!JWT_SECRET) {
   }
   console.warn("[auth] JWT_SECRET is not set — using an insecure dev default. Set JWT_SECRET in production.");
 }
-const SECRET = JWT_SECRET || "dev-insecure-secret-change-me";
+export const SECRET = JWT_SECRET || "dev-insecure-secret-change-me";
 
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
 

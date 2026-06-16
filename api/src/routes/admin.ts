@@ -1,11 +1,14 @@
 import { Hono } from "hono";
 import { pool } from "../db.js";
 import { mistralConfigured, translateSkillLabels } from "../mistral.js";
+import { type AdminEnv, requireAdmin } from "../adminAuth.js";
 
-// Lean community admin. NO AUTH YET — intentionally open for the single
-// pre-launch operator. Lock this behind an admin role + auth before any
-// public exposure (tracked as a follow-up).
-export const admin = new Hono();
+// Lean community admin. Every route requires a valid admin session (email +
+// password login via /api/admin/auth). The login routes themselves are mounted
+// separately and are not gated here.
+export const admin = new Hono<AdminEnv>();
+
+admin.use("*", requireAdmin);
 
 const COMMUNITY_COLS = `
   c.id, c.name, c.context, c.code, c.published,

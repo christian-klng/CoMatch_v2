@@ -1,3 +1,8 @@
+export interface AdminSession {
+  id: string;
+  email: string;
+}
+
 export interface AdminCommunity {
   id: string;
   name: string;
