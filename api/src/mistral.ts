@@ -86,6 +86,71 @@ export async function translateSkillLabels(
   });
 }
 
+export interface ProfileFields {
+  role: string | null;
+  company: string | null;
+  bio: string | null;
+  /** Up to 3 short tags characterising the person. */
+  attributes: string[];
+}
+
+/**
+ * Derive the editable profile fields from a stored LinkedIn profile: current
+ * job title, employer, a short bio and exactly 3 characterising tags. Same idea
+ * as the name — prefilled from LinkedIn, still editable by the user afterwards.
+ * bio + attributes are written in the user's UI language; role/company stay
+ * factual. Throws on API errors (callers treat extraction as best-effort).
+ */
+export async function extractProfileFields(
+  profile: unknown,
+  locale: SkillLocale = "de",
+): Promise<ProfileFields> {
+  if (!mistralConfigured) throw new Error("Mistral is not configured");
+
+  const languageName = locale === "en" ? "ENGLISCH" : "DEUTSCH";
+  const system =
+    "Du extrahierst aus einem LinkedIn-Profil eine kompakte Profil-Zusammenfassung " +
+    "für eine Matching-App für Gründer:innen und Fachleute. Antworte immer als JSON-Objekt.";
+  const userMsg =
+    `LinkedIn-Profil (JSON):\n${JSON.stringify(profile).slice(0, 8000)}\n\n` +
+    `Extrahiere folgende Felder und antworte als JSON-Objekt:\n` +
+    `{"role":"…","company":"…","bio":"…","attributes":["…","…","…"]}\n\n` +
+    `- "role": aktuelle bzw. zuletzt ausgeübte Position als kurzer Jobtitel. Unklar → null.\n` +
+    `- "company": aktueller bzw. zuletzt genannter Arbeitgeber (wortgleich). Unklar → null.\n` +
+    `- "bio": 1-2 prägnante Sätze auf ${languageName}, die die Person beruflich beschreiben.\n` +
+    `- "attributes": GENAU 3 sehr kurze Schlagworte/Tags auf ${languageName} (je 1-3 Wörter), ` +
+    `die die Person charakterisieren (Branche, Rolle, Schwerpunkt).`;
+
+  const parsed = (await chatJson(system, userMsg, 400)) as Record<string, unknown>;
+
+  const str = (v: unknown, max: number): string | null => {
+    if (typeof v !== "string") return null;
+    const s = v.trim().replace(/\s+/g, " ").slice(0, max);
+    return s || null;
+  };
+
+  const attributes: string[] = [];
+  if (Array.isArray(parsed.attributes)) {
+    const seen = new Set<string>();
+    for (const x of parsed.attributes) {
+      if (typeof x !== "string") continue;
+      const a = x.trim().replace(/\s+/g, " ").slice(0, 40);
+      const key = a.toLowerCase();
+      if (!a || seen.has(key)) continue;
+      seen.add(key);
+      attributes.push(a);
+      if (attributes.length === 3) break;
+    }
+  }
+
+  return {
+    role: str(parsed.role, 80),
+    company: str(parsed.company, 80),
+    bio: str(parsed.bio, 500),
+    attributes,
+  };
+}
+
 /**
  * Suggest skill *labels* (free text — no fixed catalog) for a LinkedIn profile,
  * in the user's language. Two sources are blended:

@@ -99,7 +99,8 @@ function ProfileCard({ user }: { user: AuthUser | null }) {
   const subtitle = [user?.role, user?.company].filter(Boolean).join(" · ");
 
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ name: "", role: "", company: "", bio: "" });
+  // attributes is edited as a comma-separated string; split/trimmed on save.
+  const [form, setForm] = useState({ name: "", role: "", company: "", bio: "", attributes: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -109,6 +110,7 @@ function ProfileCard({ user }: { user: AuthUser | null }) {
       role: user?.role ?? "",
       company: user?.company ?? "",
       bio: user?.bio ?? "",
+      attributes: (user?.attributes ?? []).join(", "),
     });
     setError(null);
     setEditing(true);
@@ -119,7 +121,12 @@ function ProfileCard({ user }: { user: AuthUser | null }) {
     setBusy(true);
     setError(null);
     try {
-      await apiUpdateProfile(form);
+      const attributes = form.attributes
+        .split(",")
+        .map((a) => a.trim())
+        .filter(Boolean)
+        .slice(0, 3);
+      await apiUpdateProfile({ ...form, attributes });
       refreshUser();
       setEditing(false);
     } catch (err) {
@@ -183,6 +190,15 @@ function ProfileCard({ user }: { user: AuthUser | null }) {
               className="w-full resize-none rounded-md border border-border bg-surface px-3.5 py-2 text-[15px] text-ink shadow-xs transition-colors placeholder:text-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
             />
           </label>
+          <div>
+            <Input
+              label={t("profile.attributes")}
+              value={form.attributes}
+              onChange={(e) => setForm((f) => ({ ...f, attributes: e.target.value }))}
+              placeholder={t("profile.attributesPlaceholder")}
+            />
+            <p className="mt-1 text-xs text-faint">{t("profile.attributesHint")}</p>
+          </div>
 
           {error && <Notice>{error}</Notice>}
 

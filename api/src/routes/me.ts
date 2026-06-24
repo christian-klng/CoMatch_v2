@@ -8,7 +8,13 @@ import {
   linkedinIdentifier,
   unipileConfigured,
 } from "../unipile.js";
-import { mistralConfigured, suggestSkills, type SkillSuggestions } from "../mistral.js";
+import {
+  extractProfileFields,
+  mistralConfigured,
+  type ProfileFields,
+  suggestSkills,
+  type SkillSuggestions,
+} from "../mistral.js";
 import { canonicalizeLabels } from "../skillcatalog.js";
 
 export const me = new Hono<AuthEnv>();
@@ -18,8 +24,14 @@ export const me = new Hono<AuthEnv>();
 // may be cleared by sending an empty string.
 me.put("/profile", requireAuth, async (c) => {
   const body = await c.req
-    .json<{ name?: string; role?: string; company?: string; bio?: string }>()
-    .catch(() => ({}) as Record<string, string>);
+    .json<{
+      name?: string;
+      role?: string;
+      company?: string;
+      bio?: string;
+      attributes?: string[];
+    }>()
+    .catch(() => ({}) as Record<string, unknown>);
 
   const clean = (v: unknown, max: number) =>
     typeof v === "string" ? v.trim().replace(/\s+/g, " ").slice(0, max) || null : null;
@@ -30,9 +42,24 @@ me.put("/profile", requireAuth, async (c) => {
   const company = clean(body.company, 80);
   const bio = typeof body.bio === "string" ? body.bio.trim().slice(0, 500) || null : null;
 
+  // attributes is optional: an array (even empty) replaces the tags; omit the
+  // field entirely to leave them untouched. Max 3, deduped, each ≤ 40 chars.
+  const attributes = Array.isArray(body.attributes)
+    ? [
+        ...new Set(
+          body.attributes
+            .filter((x): x is string => typeof x === "string")
+            .map((x) => x.trim().replace(/\s+/g, " ").slice(0, 40))
+            .filter(Boolean),
+        ),
+      ].slice(0, 3)
+    : null;
+
   await pool.query(
-    `update users set name = $2, role = $3, company = $4, bio = $5 where id = $1`,
-    [c.get("userId"), name, role, company, bio],
+    `update users set name = $2, role = $3, company = $4, bio = $5,
+            attributes = case when $6::text[] is not null then $6::text[] else attributes end
+       where id = $1`,
+    [c.get("userId"), name, role, company, bio, attributes],
   );
   return c.json({ ok: true });
 });
@@ -153,18 +180,50 @@ me.post("/linkedin", requireAuth, async (c) => {
       }
     }
 
+    // Prefill the editable profile fields (role/company/bio) + 3 attributes from
+    // the profile via the LLM — same idea as the name: filled from LinkedIn, still
+    // editable in the profile form afterwards. Best-effort: any failure leaves the
+    // existing values untouched (coalesce in SQL), and never fails the import.
+    let fields: ProfileFields | null = null;
+    if (mistralConfigured) {
+      try {
+        const { rows } = await pool.query<{ locale: "de" | "en" | null }>(
+          `select locale from users where id = $1`,
+          [userId],
+        );
+        const locale = rows[0]?.locale === "en" ? "en" : "de";
+        fields = await extractProfileFields(profile, locale);
+      } catch (err) {
+        console.error("[linkedin] profile field extraction failed", err);
+      }
+    }
+
     // The real first name from LinkedIn replaces the random placeholder name.
     // Clearing skill_suggestions makes the Skills screen re-analyse the fresh
     // profile; the user's saved skill selection (user_skills) stays untouched —
     // new suggestions only pre-select when nothing is saved yet.
     const firstName = profile.first_name?.trim() || null;
+    const attributes = fields && fields.attributes.length ? fields.attributes : null;
     await pool.query(
       `update users set linkedin_profile = $2,
               skill_suggestions = null,
               avatar_url = coalesce($3, avatar_url),
-              name = coalesce($4, name)
+              name = coalesce($4, name),
+              role = coalesce($5, role),
+              company = coalesce($6, company),
+              bio = coalesce($7, bio),
+              attributes = case when $8::text[] is not null then $8::text[] else attributes end
          where id = $1`,
-      [userId, profile, avatarUrl, firstName],
+      [
+        userId,
+        profile,
+        avatarUrl,
+        firstName,
+        fields?.role ?? null,
+        fields?.company ?? null,
+        fields?.bio ?? null,
+        attributes,
+      ],
     );
 
     return c.json({ ok: true, profileFetched: true });
