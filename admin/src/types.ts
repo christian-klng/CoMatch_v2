@@ -42,6 +42,8 @@ export interface AdminUserRow {
 
 export interface AdminUserDetail extends Omit<AdminUserRow, "hasSkillSuggestions"> {
   bio: string | null;
+  /** Profile tags (max 3) — prefilled from LinkedIn, editable, backfillable. */
+  attributes: string[];
   linkedinConsentAt: string | null;
   /** Stored AI suggestions (skill IDs). null = no LinkedIn import done. */
   skillSuggestions: { seeks: string[]; offers: string[] } | null;

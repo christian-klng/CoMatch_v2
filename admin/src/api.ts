@@ -139,3 +139,12 @@ export function updateUser(
 ): Promise<{ ok: true }> {
   return call<{ ok: true }>("PATCH", `/api/admin/users/${id}`, patch);
 }
+
+/** Re-run the LLM extraction of role/company/bio + attributes from the user's
+ *  stored LinkedIn profile. Returns the extracted fields on success. */
+export function backfillUserProfile(id: string): Promise<{
+  ok: true;
+  fields: { role: string | null; company: string | null; bio: string | null; attributes: string[] };
+}> {
+  return call("POST", `/api/admin/users/${id}/backfill-profile`);
+}

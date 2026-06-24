@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { pool } from "../db.js";
-import { mistralConfigured, translateSkillLabels } from "../mistral.js";
+import { extractProfileFields, mistralConfigured, translateSkillLabels } from "../mistral.js";
 import { type AdminEnv, requireAdmin } from "../adminAuth.js";
 
 // Lean community admin. Every route requires a valid admin session (email +
@@ -252,7 +252,7 @@ admin.get("/users/:id", async (c) => {
   const id = c.req.param("id");
 
   const { rows } = await pool.query(
-    `select u.id, u.email, u.name, u.role, u.company, u.bio,
+    `select u.id, u.email, u.name, u.role, u.company, u.bio, u.attributes,
             u.linkedin_url               as "linkedinUrl",
             u.linkedin_consent_at        as "linkedinConsentAt",
             (u.linkedin_profile is not null) as "linkedinProfileRead",
@@ -350,6 +350,43 @@ admin.patch("/users/:id", async (c) => {
   );
   if (!rowCount) return c.json({ error: "not_found" }, 404);
   return c.json({ ok: true });
+});
+
+// POST /api/admin/users/:id/backfill-profile → re-run the LLM extraction of
+// role/company/bio + 3 attributes from the user's stored LinkedIn profile and
+// write them back. Requires a previously read profile. coalesce: a field the
+// LLM can't determine (null) keeps its current value rather than being wiped;
+// attributes are only replaced when the LLM returns at least one. Idempotent.
+admin.post("/users/:id/backfill-profile", async (c) => {
+  if (!mistralConfigured) return c.json({ error: "mistral_not_configured" }, 503);
+  const id = c.req.param("id");
+
+  const { rows } = await pool.query<{ linkedin_profile: unknown; locale: "de" | "en" | null }>(
+    `select linkedin_profile, locale from users where id = $1`,
+    [id],
+  );
+  if (rows.length === 0) return c.json({ error: "not_found" }, 404);
+  const profile = rows[0].linkedin_profile;
+  if (!profile) return c.json({ error: "no_profile" }, 400);
+  const locale = rows[0].locale === "en" ? "en" : "de";
+
+  try {
+    const fields = await extractProfileFields(profile, locale);
+    const attributes = fields.attributes.length ? fields.attributes : null;
+    await pool.query(
+      `update users set
+         role = coalesce($2, role),
+         company = coalesce($3, company),
+         bio = coalesce($4, bio),
+         attributes = case when $5::text[] is not null then $5::text[] else attributes end
+       where id = $1`,
+      [id, fields.role, fields.company, fields.bio, attributes],
+    );
+    return c.json({ ok: true, fields });
+  } catch (err) {
+    console.error("[admin] profile backfill failed", err);
+    return c.json({ error: "extraction_failed" }, 502);
+  }
 });
 
 // POST /api/admin/skills/translate → one-shot backfill: translate every skill

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { AdminUserDetail } from "./types";
-import { getUser, updateUser } from "./api";
+import { backfillUserProfile, getUser, updateUser } from "./api";
 
 export function UserDetail({ userId, onBack }: { userId: string; onBack: () => void }) {
   const [user, setUser] = useState<AdminUserDetail | null>(null);
@@ -8,6 +8,7 @@ export function UserDetail({ userId, onBack }: { userId: string; onBack: () => v
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [backfillMsg, setBackfillMsg] = useState<string | null>(null);
 
   // Editable fields
   const [name, setName] = useState("");
@@ -51,6 +52,37 @@ export function UserDetail({ userId, onBack }: { userId: string; onBack: () => v
       load();
     } catch {
       setError("Speichern fehlgeschlagen.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const backfill = async () => {
+    if (!user || busy) return;
+    if (!window.confirm(
+      "Profilfelder (Rolle, Unternehmen, Bio) und 3 Tags per KI aus dem LinkedIn-Profil neu ableiten? " +
+      "Vorhandene Werte werden überschrieben, sofern die KI etwas liefert.",
+    )) return;
+    setBusy(true);
+    setError(null);
+    setSaved(false);
+    try {
+      const { fields } = await backfillUserProfile(user.id);
+      setSaved(true);
+      const parts = [
+        fields.role && `Rolle: ${fields.role}`,
+        fields.company && `Unternehmen: ${fields.company}`,
+        fields.attributes.length && `Tags: ${fields.attributes.join(", ")}`,
+      ].filter(Boolean);
+      setBackfillMsg(parts.length ? `Übernommen → ${parts.join(" · ")}` : "Keine Felder ableitbar.");
+      load();
+    } catch (e) {
+      const msg = e instanceof Error && /→ 400\b/.test(e.message)
+        ? "Kein eingelesenes LinkedIn-Profil vorhanden."
+        : e instanceof Error && /→ 503\b/.test(e.message)
+          ? "KI (Mistral) ist nicht konfiguriert."
+          : "Backfill fehlgeschlagen.";
+      setError(msg);
     } finally {
       setBusy(false);
     }
@@ -115,10 +147,52 @@ export function UserDetail({ userId, onBack }: { userId: string; onBack: () => v
                   style={{ resize: "vertical", padding: "10px 14px", border: "1px solid var(--border)", borderRadius: 8, fontSize: 15, fontFamily: "inherit" }}
                 />
               </label>
+              <div className="detail-row" style={{ alignItems: "flex-start" }}>
+                <span className="detail-key">Tags</span>
+                <span className="detail-val">
+                  {user.attributes.length === 0 ? (
+                    <em className="faint">–</em>
+                  ) : (
+                    <span style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {user.attributes.map((a) => (
+                        <span key={a} className="skill-chip">{a}</span>
+                      ))}
+                    </span>
+                  )}
+                </span>
+              </div>
               <button className="btn primary" onClick={save} disabled={busy}>
                 {busy ? "Speichere…" : "Speichern"}
               </button>
             </div>
+          </section>
+
+          {/* KI-Profilextraktion (Backfill) */}
+          <section className="card">
+            <h2>KI-Profilextraktion</h2>
+            <p className="muted small" style={{ marginTop: 0 }}>
+              Leitet Rolle, Unternehmen, Bio und 3 Tags per KI aus dem gespeicherten
+              LinkedIn-Profil ab und schreibt sie ins Profil. Vorhandene Werte werden
+              überschrieben, sofern die KI ein Ergebnis liefert.
+            </p>
+            {backfillMsg && (
+              <p className="alert small" style={{ background: "var(--success-bg)", color: "var(--success)" }}>
+                {backfillMsg}
+              </p>
+            )}
+            <button
+              className="btn primary"
+              onClick={backfill}
+              disabled={busy || !user.linkedinProfileRead}
+              title={user.linkedinProfileRead ? "" : "Kein eingelesenes LinkedIn-Profil vorhanden"}
+            >
+              {busy ? "Leite ab…" : "Profilfelder aus LinkedIn ableiten"}
+            </button>
+            {!user.linkedinProfileRead && (
+              <p className="faint small" style={{ marginTop: 8 }}>
+                Erst möglich, wenn ein LinkedIn-Profil eingelesen wurde.
+              </p>
+            )}
           </section>
 
           {/* LinkedIn */}
