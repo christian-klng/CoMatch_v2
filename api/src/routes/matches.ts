@@ -43,6 +43,7 @@ matches.get("/", requireAuth, async (c) => {
     `select distinct u.id, u.name, u.role, u.company,
             u.avatar_url as "avatarUrl", u.bio, u.attributes,
             u.linkedin_url as "linkedinUrl",
+            u.website_url as "websiteUrl",
             (u.avatar_data is not null) as "hasAvatarData"
        from users u
        join community_members m on m.user_id = u.id
@@ -122,6 +123,7 @@ matches.get("/", requireAuth, async (c) => {
       avatarUrl: reveal ? resolveAvatarUrl(c, u) : null,
       bio: u.bio ?? undefined,
       linkedinUrl: reveal ? (u.linkedinUrl ?? null) : null,
+      websiteUrl: reveal ? (u.websiteUrl ?? null) : null,
       attributes: u.attributes,
       seeks,
       offers,

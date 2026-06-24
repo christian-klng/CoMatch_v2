@@ -72,6 +72,12 @@ Christian stößt Deploys manuell an.
   - `MISTRAL_API_KEY` (+ optional `MISTRAL_MODEL`) — Skill-Vorschläge &
     Label-Übersetzung
   - `UNIPILE_DSN`, `UNIPILE_API_KEY`, `UNIPILE_ACCOUNT_ID` — LinkedIn-Import
+  - `UPLOAD_DIR` — Verzeichnis für Nutzer-Datei-Uploads (CV, Pitch Deck …),
+    z. B. `/data/uploads`. **Muss auf ein persistentes Volume zeigen**, sonst
+    gehen Uploads bei jedem Deploy verloren.
+- **Persistent Storage:** In Coolify ein Volume anlegen und in den
+  API-Container mounten (Mount-Pfad = Wert von `UPLOAD_DIR`). Ohne Volume
+  liegen die Dateien im ephemeren Container-FS.
 
 ### c) Frontend-Service — `comatch.startup-incubator.berlin`
 - **Base Directory:** `/` (Root) · Dockerfile · Port 80.

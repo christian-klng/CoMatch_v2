@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { pool } from "../db.js";
 import { extractProfileFields, mistralConfigured, translateSkillLabels } from "../mistral.js";
 import { type AdminEnv, requireAdmin } from "../adminAuth.js";
+import { readFileBytes } from "../files.js";
 
 // Lean community admin. Every route requires a valid admin session (email +
 // password login via /api/admin/auth). The login routes themselves are mounted
@@ -254,6 +255,7 @@ admin.get("/users/:id", async (c) => {
   const { rows } = await pool.query(
     `select u.id, u.email, u.name, u.role, u.company, u.bio, u.attributes,
             u.linkedin_url               as "linkedinUrl",
+            u.website_url                as "websiteUrl",
             u.linkedin_consent_at        as "linkedinConsentAt",
             (u.linkedin_profile is not null) as "linkedinProfileRead",
             u.avatar_url                 as "avatarUrl",
@@ -288,7 +290,35 @@ admin.get("/users/:id", async (c) => {
     )
   ).rows;
 
-  return c.json({ ...rows[0], skills, communities });
+  const files = (
+    await pool.query(
+      `select id, filename, mime, size_bytes as "sizeBytes", created_at as "createdAt"
+         from user_files where user_id = $1 order by created_at desc`,
+      [id],
+    )
+  ).rows;
+
+  return c.json({ ...rows[0], skills, communities, files });
+});
+
+// GET /api/admin/users/:id/files/:fileId/download → stream a user's file.
+admin.get("/users/:id/files/:fileId/download", async (c) => {
+  const { rows } = await pool.query<{
+    filename: string;
+    mime: string;
+    storage_path: string;
+  }>(
+    `select filename, mime, storage_path from user_files where id = $1 and user_id = $2`,
+    [c.req.param("fileId"), c.req.param("id")],
+  );
+  const row = rows[0];
+  if (!row) return c.json({ error: "not_found" }, 404);
+  const data = await readFileBytes(row.storage_path).catch(() => null);
+  if (!data) return c.json({ error: "not_found" }, 404);
+  return c.body(new Uint8Array(data), 200, {
+    "Content-Type": row.mime,
+    "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(row.filename)}`,
+  });
 });
 
 // PATCH /api/admin/users/:id → overwrite editable fields; null = clear.
@@ -302,6 +332,7 @@ admin.patch("/users/:id", async (c) => {
       company?: string | null;
       bio?: string | null;
       linkedinUrl?: string | null;
+      websiteUrl?: string | null;
       clearLinkedin?: boolean;
     }>()
     .catch(() => ({}) as Record<string, unknown>);
@@ -314,6 +345,7 @@ admin.patch("/users/:id", async (c) => {
   const company = trim(body.company);
   const bio     = trim(body.bio);
   const linkedinUrl = trim(body.linkedinUrl);
+  const websiteUrl  = trim(body.websiteUrl);
 
   // Build SET clauses only for fields explicitly included in the request.
   const sets: string[] = [];
@@ -327,6 +359,7 @@ admin.patch("/users/:id", async (c) => {
   if (role    !== undefined) add("role",         role);
   if (company !== undefined) add("company",      company);
   if (bio     !== undefined) add("bio",          bio);
+  if (websiteUrl !== undefined) add("website_url", websiteUrl);
 
   if (body.clearLinkedin) {
     sets.push(

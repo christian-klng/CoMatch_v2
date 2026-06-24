@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ScreenHeader } from "../components/AppShell";
@@ -10,11 +10,49 @@ import { Input } from "../components/ui/Input";
 import { Notice } from "../components/ui/Notice";
 import { logout, refreshUser, useAuth } from "../lib/auth";
 import { useMyCommunities } from "../lib/community";
-import { apiDeleteLinkedin, apiSaveLinkedin, apiSetLocale, apiUpdateProfile, ApiError } from "../lib/api";
+import {
+  apiDeleteFile,
+  apiDeleteLinkedin,
+  apiDeleteWebsite,
+  apiDownloadFile,
+  apiListFiles,
+  apiSaveLinkedin,
+  apiSaveWebsite,
+  apiSetLocale,
+  apiUpdateProfile,
+  ApiError,
+  apiUploadFile,
+} from "../lib/api";
 import i18n, { currentLocale, type Locale } from "../i18n";
 import { cn } from "../lib/cn";
-import type { AuthUser } from "../lib/types";
-import { IconLink, IconUsers } from "../components/icons";
+import type { AuthUser, UserFile } from "../lib/types";
+import {
+  IconFile,
+  IconGlobe,
+  IconLink,
+  IconTrash,
+  IconUpload,
+  IconUsers,
+} from "../components/icons";
+
+// File-upload limits — mirror the API (api/src/files.ts) for instant feedback.
+const MAX_FILES = 5;
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const ALLOWED_MIME = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "image/png",
+  "image/jpeg",
+];
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 export function Profile() {
   const { t } = useTranslation();
@@ -76,6 +114,10 @@ export function Profile() {
           currentUrl={user?.linkedinUrl ?? null}
           profileRead={user?.linkedinProfileRead ?? false}
         />
+
+        <WebsiteCard currentUrl={user?.websiteUrl ?? null} />
+
+        <FilesCard />
 
         <LanguageCard />
 
@@ -364,6 +406,237 @@ function LinkedinCard({
           </Button>
         )}
       </div>
+    </Card>
+  );
+}
+
+/** The user's own website URL — stored as-is, reading the site comes later. */
+function WebsiteCard({ currentUrl }: { currentUrl: string | null }) {
+  const { t } = useTranslation();
+  const [url, setUrl] = useState(currentUrl ?? "");
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const dirty = url.trim() !== (currentUrl ?? "").trim();
+  const canSave = url.trim().length > 0 && dirty && !busy;
+
+  const save = async () => {
+    if (!canSave) return;
+    setBusy(true);
+    setStatus(null);
+    try {
+      await apiSaveWebsite(url.trim());
+      refreshUser();
+      setStatus({ ok: true, text: t("profile.websiteSaved") });
+    } catch (err) {
+      const msg =
+        err instanceof ApiError && err.status === 400
+          ? t("profile.websiteInvalid")
+          : t("profile.websiteError");
+      setStatus({ ok: false, text: msg });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const clear = async () => {
+    setBusy(true);
+    setStatus(null);
+    try {
+      await apiDeleteWebsite();
+      setUrl("");
+      refreshUser();
+    } catch {
+      setStatus({ ok: false, text: t("profile.websiteError") });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card className="space-y-3 p-4">
+      <div className="flex items-center gap-2">
+        <IconGlobe width={18} height={18} className="text-brand-600" />
+        <p className="text-sm font-medium text-ink">{t("profile.websiteTitle")}</p>
+      </div>
+
+      <Input
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        placeholder={t("profile.websitePlaceholder")}
+        inputMode="url"
+        autoCapitalize="none"
+      />
+
+      {status && (
+        <Notice tone={status.ok ? "success" : "danger"}>{status.text}</Notice>
+      )}
+
+      <div className="flex gap-2">
+        <Button size="sm" disabled={!canSave} onClick={save}>
+          {busy
+            ? t("common.saving")
+            : currentUrl
+              ? t("profile.websiteUpdate")
+              : t("profile.websiteSave")}
+        </Button>
+        {currentUrl && (
+          <Button size="sm" variant="ghost" disabled={busy} onClick={clear}>
+            {t("profile.websiteRemove")}
+          </Button>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+/** Drag-&-drop upload of files about the user (CV, pitch deck, …). Reading the
+ *  files comes later; for now they can be uploaded, downloaded and deleted. */
+function FilesCard() {
+  const { t } = useTranslation();
+  const [files, setFiles] = useState<UserFile[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    apiListFiles()
+      .then(setFiles)
+      .catch(() => {});
+  }, []);
+
+  const atLimit = files.length >= MAX_FILES;
+
+  const upload = async (selected: File[]) => {
+    if (selected.length === 0) return;
+    setError(null);
+    let count = files.length;
+    setBusy(true);
+    try {
+      for (const f of selected) {
+        if (count >= MAX_FILES) {
+          setError(t("profile.filesTooMany", { max: MAX_FILES }));
+          break;
+        }
+        if (!ALLOWED_MIME.includes(f.type)) {
+          setError(t("profile.fileUnsupported"));
+          continue;
+        }
+        if (f.size > MAX_FILE_BYTES) {
+          setError(t("profile.fileTooLarge"));
+          continue;
+        }
+        const created = await apiUploadFile(f);
+        setFiles((prev) => [created, ...prev]);
+        count++;
+      }
+    } catch (err) {
+      const code = err instanceof ApiError ? err.message : "";
+      setError(
+        code === "too_many_files"
+          ? t("profile.filesTooMany", { max: MAX_FILES })
+          : code === "file_too_large"
+            ? t("profile.fileTooLarge")
+            : code === "unsupported_type"
+              ? t("profile.fileUnsupported")
+              : t("profile.filesError"),
+      );
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  const remove = async (id: string) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await apiDeleteFile(id);
+      setFiles((prev) => prev.filter((x) => x.id !== id));
+    } catch {
+      setError(t("profile.filesError"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card className="space-y-3 p-4">
+      <div className="flex items-center gap-2">
+        <IconUpload width={18} height={18} className="text-brand-600" />
+        <p className="text-sm font-medium text-ink">{t("profile.filesTitle")}</p>
+        <span className="ml-auto text-xs text-muted">
+          {files.length}/{MAX_FILES}
+        </span>
+      </div>
+
+      <p className="text-[13px] leading-relaxed text-muted">{t("profile.filesHint")}</p>
+
+      <div
+        role="button"
+        tabIndex={0}
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!atLimit && !busy) setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          if (!atLimit && !busy) upload(Array.from(e.dataTransfer.files));
+        }}
+        onClick={() => !atLimit && !busy && inputRef.current?.click()}
+        className={cn(
+          "flex cursor-pointer flex-col items-center gap-1 rounded-xl border-2 border-dashed px-4 py-6 text-center transition-colors",
+          dragOver ? "border-brand-500 bg-brand-50" : "border-border",
+          (busy || atLimit) && "pointer-events-none opacity-50",
+        )}
+      >
+        <IconUpload width={22} height={22} className="text-muted" />
+        <p className="text-sm text-ink-soft">{t("profile.filesDrop")}</p>
+        <p className="text-xs text-faint">{t("profile.filesFormats")}</p>
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        hidden
+        accept=".pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg"
+        onChange={(e) => upload(Array.from(e.target.files ?? []))}
+      />
+
+      {error && <Notice tone="danger">{error}</Notice>}
+
+      {files.length > 0 && (
+        <ul className="space-y-2">
+          {files.map((f) => (
+            <li
+              key={f.id}
+              className="flex items-center gap-3 rounded-lg border border-border px-3 py-2"
+            >
+              <IconFile width={18} height={18} className="shrink-0 text-muted" />
+              <button
+                type="button"
+                onClick={() => apiDownloadFile(f).catch(() => setError(t("profile.filesError")))}
+                className="min-w-0 flex-1 text-left"
+              >
+                <p className="truncate text-sm text-ink">{f.filename}</p>
+                <p className="text-xs text-faint">{formatBytes(f.sizeBytes)}</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => remove(f.id)}
+                disabled={busy}
+                aria-label={t("profile.fileRemove")}
+                className="shrink-0 text-muted transition-colors hover:text-danger"
+              >
+                <IconTrash width={18} height={18} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </Card>
   );
 }

@@ -1,6 +1,16 @@
 import { useEffect, useState } from "react";
 import type { AdminUserDetail } from "./types";
-import { backfillUserProfile, getUser, updateUser } from "./api";
+import { backfillUserProfile, downloadUserFile, getUser, updateUser } from "./api";
+
+/** Prepend https:// when the stored URL has no protocol. */
+const withProtocol = (url: string) =>
+  /^https?:\/\//i.test(url) ? url : `https://${url}`;
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 export function UserDetail({ userId, onBack }: { userId: string; onBack: () => void }) {
   const [user, setUser] = useState<AdminUserDetail | null>(null);
@@ -16,6 +26,7 @@ export function UserDetail({ userId, onBack }: { userId: string; onBack: () => v
   const [company, setCompany] = useState("");
   const [bio, setBio] = useState("");
   const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
 
   const load = () => {
     setLoading(true);
@@ -28,6 +39,7 @@ export function UserDetail({ userId, onBack }: { userId: string; onBack: () => v
         setCompany(u.company ?? "");
         setBio(u.bio ?? "");
         setLinkedinUrl(u.linkedinUrl ?? "");
+        setWebsiteUrl(u.websiteUrl ?? "");
       })
       .catch(() => setError("Nutzer konnte nicht geladen werden."))
       .finally(() => setLoading(false));
@@ -47,6 +59,7 @@ export function UserDetail({ userId, onBack }: { userId: string; onBack: () => v
         company: company.trim() || null,
         bio: bio.trim() || null,
         linkedinUrl: linkedinUrl.trim() || null,
+        websiteUrl: websiteUrl.trim() || null,
       });
       setSaved(true);
       load();
@@ -234,6 +247,56 @@ export function UserDetail({ userId, onBack }: { userId: string; onBack: () => v
                 )}
               </div>
             </div>
+          </section>
+
+          {/* Website */}
+          <section className="card">
+            <h2>Website</h2>
+            <div className="form">
+              <div className="detail-row">
+                <span className="detail-key">URL gespeichert</span>
+                <span className="detail-val">
+                  {user.websiteUrl
+                    ? <a href={withProtocol(user.websiteUrl)} target="_blank" rel="noopener noreferrer" style={{ color: "var(--brand)" }}>{user.websiteUrl}</a>
+                    : <em className="faint">–</em>}
+                </span>
+              </div>
+              <label className="field-label">
+                Website-URL überschreiben / leeren
+                <input
+                  value={websiteUrl}
+                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                  placeholder="example.com oder leer lassen zum Leeren"
+                />
+              </label>
+              <button className="btn primary" onClick={save} disabled={busy}>
+                {busy ? "…" : "Speichern"}
+              </button>
+            </div>
+          </section>
+
+          {/* Uploaded files */}
+          <section className="card">
+            <h2>Dateien ({user.files.length})</h2>
+            {user.files.length === 0 ? (
+              <p className="muted small">Keine Dateien hochgeladen.</p>
+            ) : (
+              <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
+                {user.files.map((f) => (
+                  <li key={f.id} className="detail-row" style={{ alignItems: "center" }}>
+                    <button
+                      onClick={() => downloadUserFile(user.id, f).catch(() => setError("Download fehlgeschlagen."))}
+                      style={{ background: "none", border: 0, padding: 0, font: "inherit", color: "var(--brand)", cursor: "pointer", textDecoration: "underline", textAlign: "left" }}
+                    >
+                      {f.filename}
+                    </button>
+                    <span className="faint small" style={{ marginLeft: "auto" }}>
+                      {formatBytes(f.sizeBytes)} · {new Date(f.createdAt).toLocaleDateString("de-DE")}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
 
           {/* Avatar */}

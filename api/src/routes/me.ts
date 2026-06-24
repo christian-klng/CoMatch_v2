@@ -1,7 +1,16 @@
+import { randomUUID } from "node:crypto";
 import { Hono } from "hono";
 import { pool } from "../db.js";
 import { type AuthEnv, requireAuth } from "../auth.js";
 import { apiBaseUrl } from "../avatars.js";
+import {
+  ALLOWED_MIME,
+  deleteFile,
+  MAX_FILE_BYTES,
+  MAX_FILES_PER_USER,
+  readFileBytes,
+  saveFile,
+} from "../files.js";
 import {
   downloadImage,
   fetchLinkedInProfile,
@@ -339,5 +348,112 @@ me.delete("/linkedin", requireAuth, async (c) => {
      where id = $1`,
     [c.get("userId")],
   );
+  return c.json({ ok: true });
+});
+
+// POST /api/me/website { url } → store the user's own website URL. No consent
+// or scraping (it's their public site); reading the site comes later. DELETE
+// clears it. The URL is stored verbatim; the client prepends https:// for links.
+me.post("/website", requireAuth, async (c) => {
+  const body = await c.req
+    .json<{ url?: string }>()
+    .catch(() => ({}) as { url?: string });
+  const url = body.url?.trim().slice(0, 300);
+  if (!url) return c.json({ error: "url_required" }, 400);
+  // Loose sanity check: must contain a dot and no whitespace (e.g. "acme.com").
+  if (/\s/.test(url) || !url.includes(".")) {
+    return c.json({ error: "invalid_url" }, 400);
+  }
+  await pool.query(`update users set website_url = $2 where id = $1`, [
+    c.get("userId"),
+    url,
+  ]);
+  return c.json({ ok: true });
+});
+
+me.delete("/website", requireAuth, async (c) => {
+  await pool.query(`update users set website_url = null where id = $1`, [
+    c.get("userId"),
+  ]);
+  return c.json({ ok: true });
+});
+
+// --- Uploaded files (CV, pitch deck, …) ------------------------------------
+// Bytes live on the server volume (see files.ts); only metadata is in the DB.
+
+// GET /api/me/files → the user's uploaded files (metadata only).
+me.get("/files", requireAuth, async (c) => {
+  const { rows } = await pool.query(
+    `select id, filename, mime, size_bytes as "sizeBytes", created_at as "createdAt"
+       from user_files where user_id = $1 order by created_at desc`,
+    [c.get("userId")],
+  );
+  return c.json(rows);
+});
+
+// POST /api/me/files (multipart, field "file") → store one file. Enforces the
+// per-user count, MIME allowlist and size cap. Returns the new file's metadata.
+me.post("/files", requireAuth, async (c) => {
+  const userId = c.get("userId");
+
+  const { rows: countRows } = await pool.query<{ n: number }>(
+    `select count(*)::int as n from user_files where user_id = $1`,
+    [userId],
+  );
+  if ((countRows[0]?.n ?? 0) >= MAX_FILES_PER_USER) {
+    return c.json({ error: "too_many_files" }, 400);
+  }
+
+  const body = await c.req.parseBody();
+  const file = body["file"];
+  if (!(file instanceof File)) return c.json({ error: "file_required" }, 400);
+  if (!ALLOWED_MIME.has(file.type)) return c.json({ error: "unsupported_type" }, 400);
+
+  const data = Buffer.from(await file.arrayBuffer());
+  if (data.byteLength === 0) return c.json({ error: "file_required" }, 400);
+  if (data.byteLength > MAX_FILE_BYTES) return c.json({ error: "file_too_large" }, 400);
+
+  const filename = (file.name || "datei").trim().slice(0, 200) || "datei";
+  const id = randomUUID();
+  const storagePath = `${userId}/${id}`;
+  await saveFile(storagePath, data);
+
+  const { rows } = await pool.query(
+    `insert into user_files (id, user_id, filename, mime, size_bytes, storage_path)
+     values ($1, $2, $3, $4, $5, $6)
+     returning id, filename, mime, size_bytes as "sizeBytes", created_at as "createdAt"`,
+    [id, userId, filename, file.type, data.byteLength, storagePath],
+  );
+  return c.json(rows[0], 201);
+});
+
+// GET /api/me/files/:fileId/download → stream the owner's file as an attachment.
+me.get("/files/:fileId/download", requireAuth, async (c) => {
+  const { rows } = await pool.query<{
+    filename: string;
+    mime: string;
+    storage_path: string;
+  }>(
+    `select filename, mime, storage_path from user_files where id = $1 and user_id = $2`,
+    [c.req.param("fileId"), c.get("userId")],
+  );
+  const row = rows[0];
+  if (!row) return c.json({ error: "not_found" }, 404);
+  const data = await readFileBytes(row.storage_path).catch(() => null);
+  if (!data) return c.json({ error: "not_found" }, 404);
+  return c.body(new Uint8Array(data), 200, {
+    "Content-Type": row.mime,
+    "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(row.filename)}`,
+  });
+});
+
+// DELETE /api/me/files/:fileId → remove the owner's file (DB row + disk).
+me.delete("/files/:fileId", requireAuth, async (c) => {
+  const { rows } = await pool.query<{ storage_path: string }>(
+    `delete from user_files where id = $1 and user_id = $2 returning storage_path`,
+    [c.req.param("fileId"), c.get("userId")],
+  );
+  if (rows.length === 0) return c.json({ error: "not_found" }, 404);
+  await deleteFile(rows[0].storage_path);
   return c.json({ ok: true });
 });

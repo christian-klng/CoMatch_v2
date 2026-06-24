@@ -15,8 +15,19 @@ export interface AuthUser {
   linkedinUrl?: string | null;
   /** Whether the LinkedIn profile behind linkedinUrl was successfully read. */
   linkedinProfileRead?: boolean;
+  /** The user's own website URL (shown next to LinkedIn). */
+  websiteUrl?: string | null;
   /** Explicitly chosen UI language; null = follow browser detection. */
   locale?: "de" | "en" | null;
+}
+
+/** A file the user uploaded about themselves (CV, pitch deck, …). */
+export interface UserFile {
+  id: string;
+  filename: string;
+  mime: string;
+  sizeBytes: number;
+  createdAt: string;
 }
 
 export type SkillKind = "seek" | "offer"; // "ich suche" | "ich kann
@@ -56,6 +67,8 @@ export interface Person {
   bio?: string;
   /** Public LinkedIn URL — only sent for revealed matches (identity-bearing). */
   linkedinUrl?: string | null;
+  /** Public website URL — only sent for revealed matches. */
+  websiteUrl?: string | null;
   /** Attributes / tags shown on the card (gap: keep controlled, not free text). */
   attributes: string[];
   seeks: string[];

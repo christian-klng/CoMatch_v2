@@ -11,10 +11,15 @@ import { CONNECTION_GATING } from "../lib/featureFlags";
 import {
   IconArrowLeft,
   IconGift,
+  IconGlobe,
   IconLink,
   IconLinkedin,
   IconSearch,
 } from "../components/icons";
+
+/** Prepend https:// when the stored URL has no protocol. */
+const withProtocol = (url: string) =>
+  /^https?:\/\//i.test(url) ? url : `https://${url}`;
 
 export function MatchDetail() {
   const { t } = useTranslation();
@@ -92,21 +97,32 @@ export function MatchDetail() {
             ))}
           </div>
 
-          {person.linkedinUrl && (
-            <a
-              href={
-                /^https?:\/\//i.test(person.linkedinUrl)
-                  ? person.linkedinUrl
-                  : `https://${person.linkedinUrl}`
-              }
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="LinkedIn"
-              className="mt-3 inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-surface-2"
-              style={{ color: "#0A66C2" }}
-            >
-              <IconLinkedin width={22} height={22} />
-            </a>
+          {(person.linkedinUrl || person.websiteUrl) && (
+            <div className="mt-3 flex items-center gap-1">
+              {person.linkedinUrl && (
+                <a
+                  href={withProtocol(person.linkedinUrl)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="LinkedIn"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-surface-2"
+                  style={{ color: "#0A66C2" }}
+                >
+                  <IconLinkedin width={22} height={22} />
+                </a>
+              )}
+              {person.websiteUrl && (
+                <a
+                  href={withProtocol(person.websiteUrl)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Website"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full text-brand-600 transition-colors hover:bg-surface-2"
+                >
+                  <IconGlobe width={22} height={22} />
+                </a>
+              )}
+            </div>
           )}
 
           {CONNECTION_GATING && (

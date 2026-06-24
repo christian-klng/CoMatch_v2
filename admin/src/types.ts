@@ -40,14 +40,26 @@ export interface AdminUserRow {
   communityCount: number;
 }
 
+/** A file the user uploaded about themselves (CV, pitch deck, …). */
+export interface AdminUserFile {
+  id: string;
+  filename: string;
+  mime: string;
+  sizeBytes: number;
+  createdAt: string;
+}
+
 export interface AdminUserDetail extends Omit<AdminUserRow, "hasSkillSuggestions"> {
   bio: string | null;
   /** Profile tags (max 3) — prefilled from LinkedIn, editable, backfillable. */
   attributes: string[];
+  /** The user's own website URL (reading the site comes later). */
+  websiteUrl: string | null;
   linkedinConsentAt: string | null;
   /** Stored AI suggestions (skill IDs). null = no LinkedIn import done. */
   skillSuggestions: { seeks: string[]; offers: string[] } | null;
   locale: string | null;
   skills: { kind: "seek" | "offer"; label: string; id: string }[];
   communities: { id: string; name: string }[];
+  files: AdminUserFile[];
 }

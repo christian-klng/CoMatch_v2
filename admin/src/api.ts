@@ -1,4 +1,4 @@
-import type { AdminCommunity, AdminMember, AdminSession, AdminUserDetail, AdminUserRow } from "./types";
+import type { AdminCommunity, AdminMember, AdminSession, AdminUserDetail, AdminUserFile, AdminUserRow } from "./types";
 
 // Base URL of the API, baked in at build time via the VITE_API_URL build-arg
 // (set it in Coolify, same value the frontend uses).
@@ -134,10 +134,33 @@ export function updateUser(
     company?: string | null;
     bio?: string | null;
     linkedinUrl?: string | null;
+    websiteUrl?: string | null;
     clearLinkedin?: boolean;
   },
 ): Promise<{ ok: true }> {
   return call<{ ok: true }>("PATCH", `/api/admin/users/${id}`, patch);
+}
+
+/** Download one of a user's uploaded files (fetched with the admin token). */
+export async function downloadUserFile(userId: string, file: AdminUserFile): Promise<void> {
+  const token = getToken();
+  const res = await fetch(`${BASE}/api/admin/users/${userId}/files/${file.id}/download`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+  if (res.status === 401) {
+    clearToken();
+    throw new UnauthorizedError();
+  }
+  if (!res.ok) throw new Error(`download → ${res.status}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = file.filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 /** Re-run the LLM extraction of role/company/bio + attributes from the user's

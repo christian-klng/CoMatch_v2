@@ -1,5 +1,5 @@
 import { currentLocale } from "../i18n";
-import type { AuthUser, Community, Person } from "./types";
+import type { AuthUser, Community, Person, UserFile } from "./types";
 
 // Base URL of the API, baked in at build time via the VITE_API_URL build-arg.
 // Empty string falls back to same-origin (only correct if API is reverse-proxied).
@@ -134,6 +134,65 @@ export function apiSaveLinkedin(
 /** Remove LinkedIn URL, profile data, avatar and skill suggestions. */
 export function apiDeleteLinkedin(): Promise<{ ok: true }> {
   return sendJson<{ ok: true }>("DELETE", "/api/me/linkedin");
+}
+
+/** Save the user's own website URL (no consent / scraping — their public site). */
+export function apiSaveWebsite(url: string): Promise<{ ok: true }> {
+  return sendJson<{ ok: true }>("POST", "/api/me/website", { url });
+}
+
+/** Remove the user's website URL. */
+export function apiDeleteWebsite(): Promise<{ ok: true }> {
+  return sendJson<{ ok: true }>("DELETE", "/api/me/website");
+}
+
+// --- Uploaded files (CV, pitch deck, …) ------------------------------------
+/** The user's uploaded files (metadata only). */
+export function apiListFiles(): Promise<UserFile[]> {
+  return getJson<UserFile[]>("/api/me/files");
+}
+
+/** Upload one file (multipart). On error the ApiError message carries the
+ *  server's error code (`too_many_files`, `file_too_large`, `unsupported_type`). */
+export async function apiUploadFile(file: File): Promise<UserFile> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${BASE}/api/me/files`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: form,
+  });
+  if (!res.ok) {
+    const code = await res.json().then((b) => b?.error).catch(() => null);
+    throw new ApiError(res.status, code ?? `${res.status}`);
+  }
+  return (await res.json()) as UserFile;
+}
+
+/** Delete one of the user's uploaded files. */
+export function apiDeleteFile(id: string): Promise<{ ok: true }> {
+  return sendJson<{ ok: true }>("DELETE", `/api/me/files/${id}`);
+}
+
+/** Download an uploaded file (fetched with the auth header, then saved). */
+export async function apiDownloadFile(file: UserFile): Promise<void> {
+  const res = await fetch(`${BASE}/api/me/files/${file.id}/download`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new ApiError(res.status, `download → ${res.status}`);
+  saveBlob(await res.blob(), file.filename);
+}
+
+/** Trigger a browser download of a blob under the given filename. */
+function saveBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 export interface SkillSuggestions {
