@@ -252,7 +252,13 @@ function Dashboard({ admin, onLogout }: { admin: AdminSession; onLogout: () => v
                     {u.communityCount > 0 && (
                       <span className="tag draft">{u.communityCount} Community{u.communityCount !== 1 ? "s" : ""}</span>
                     )}
-                    {u.linkedinProfileRead && <span className="tag live">LinkedIn</span>}
+                    {u.linkedinProfileRead ? (
+                      <span className="tag live">LinkedIn</span>
+                    ) : u.linkedinUrl ? (
+                      <span className="tag draft" title="URL gespeichert, Profil noch nicht eingelesen">
+                        LinkedIn-URL
+                      </span>
+                    ) : null}
                   </div>
                   <p className="muted small">{u.email ?? "–"}{u.role ? ` · ${u.role}` : ""}</p>
                   <p className="faint small">{new Date(u.createdAt).toLocaleDateString("de-DE")} ›</p>

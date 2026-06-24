@@ -42,6 +42,7 @@ matches.get("/", requireAuth, async (c) => {
   const candidates = await pool.query(
     `select distinct u.id, u.name, u.role, u.company,
             u.avatar_url as "avatarUrl", u.bio, u.attributes,
+            u.linkedin_url as "linkedinUrl",
             (u.avatar_data is not null) as "hasAvatarData"
        from users u
        join community_members m on m.user_id = u.id
@@ -120,6 +121,7 @@ matches.get("/", requireAuth, async (c) => {
       company: u.company ?? undefined,
       avatarUrl: reveal ? resolveAvatarUrl(c, u) : null,
       bio: u.bio ?? undefined,
+      linkedinUrl: reveal ? (u.linkedinUrl ?? null) : null,
       attributes: u.attributes,
       seeks,
       offers,

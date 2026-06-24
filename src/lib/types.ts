@@ -54,6 +54,8 @@ export interface Person {
   company?: string;
   avatarUrl: string | null;
   bio?: string;
+  /** Public LinkedIn URL — only sent for revealed matches (identity-bearing). */
+  linkedinUrl?: string | null;
   /** Attributes / tags shown on the card (gap: keep controlled, not free text). */
   attributes: string[];
   seeks: string[];

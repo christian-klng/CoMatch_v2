@@ -12,6 +12,7 @@ import {
   IconArrowLeft,
   IconGift,
   IconLink,
+  IconLinkedin,
   IconSearch,
 } from "../components/icons";
 
@@ -90,6 +91,23 @@ export function MatchDetail() {
               <Badge key={a}>{a}</Badge>
             ))}
           </div>
+
+          {person.linkedinUrl && (
+            <a
+              href={
+                /^https?:\/\//i.test(person.linkedinUrl)
+                  ? person.linkedinUrl
+                  : `https://${person.linkedinUrl}`
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="LinkedIn"
+              className="mt-3 inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-surface-2"
+              style={{ color: "#0A66C2" }}
+            >
+              <IconLinkedin width={22} height={22} />
+            </a>
+          )}
 
           {CONNECTION_GATING && (
             <div className="mt-5">
