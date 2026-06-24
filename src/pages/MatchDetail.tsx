@@ -39,7 +39,7 @@ export function MatchDetail() {
   return (
     <>
       {/* Header band */}
-      <div className="safe-top relative bg-brand-600 px-5 pb-16 pt-4 text-white">
+      <div className="safe-top relative bg-brand-600 px-5 pb-24 pt-6 text-white">
         <button
           onClick={() => navigate(-1)}
           className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-white/80 hover:text-white"
