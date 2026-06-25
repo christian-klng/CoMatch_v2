@@ -28,9 +28,9 @@ import { canonicalizeLabels } from "../skillcatalog.js";
 
 export const me = new Hono<AuthEnv>();
 
-// PUT /api/me/profile { name, role, company, bio } → update the editable
-// profile fields. Name is required (match cards rely on it); the other fields
-// may be cleared by sending an empty string.
+// PUT /api/me/profile { name, role, company, bio, contactChannel, contactNote }
+// → update the editable profile fields. Name is required (match cards rely on
+// it); the other fields may be cleared by sending an empty string.
 me.put("/profile", requireAuth, async (c) => {
   const body = await c.req
     .json<{
@@ -38,6 +38,8 @@ me.put("/profile", requireAuth, async (c) => {
       role?: string;
       company?: string;
       bio?: string;
+      contactChannel?: string;
+      contactNote?: string;
       attributes?: string[];
     }>()
     .catch(() => ({}) as Record<string, unknown>);
@@ -50,6 +52,12 @@ me.put("/profile", requireAuth, async (c) => {
   const role = clean(body.role, 80);
   const company = clean(body.company, 80);
   const bio = typeof body.bio === "string" ? body.bio.trim().slice(0, 500) || null : null;
+  // Preferred contact channel: 'linkedin' is only honoured when a LinkedIn URL
+  // is on file (guarded in SQL below); anything else falls back to 'email'.
+  const contactChannel = body.contactChannel === "linkedin" ? "linkedin" : "email";
+  // Free-text "about us" note used when others reach out (like bio, max 500).
+  const contactNote =
+    typeof body.contactNote === "string" ? body.contactNote.trim().slice(0, 500) || null : null;
 
   // attributes is optional: an array (even empty) replaces the tags; omit the
   // field entirely to leave them untouched. Max 3, deduped, each ≤ 40 chars.
@@ -66,9 +74,12 @@ me.put("/profile", requireAuth, async (c) => {
 
   await pool.query(
     `update users set name = $2, role = $3, company = $4, bio = $5,
-            attributes = case when $6::text[] is not null then $6::text[] else attributes end
+            contact_channel = case when $6 = 'linkedin' and linkedin_url is not null
+                                   then 'linkedin' else 'email' end,
+            contact_note = $7,
+            attributes = case when $8::text[] is not null then $8::text[] else attributes end
        where id = $1`,
-    [c.get("userId"), name, role, company, bio, attributes],
+    [c.get("userId"), name, role, company, bio, contactChannel, contactNote, attributes],
   );
   return c.json({ ok: true });
 });

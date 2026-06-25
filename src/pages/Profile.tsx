@@ -140,9 +140,19 @@ function ProfileCard({ user }: { user: AuthUser | null }) {
   const displayName = user?.name ?? user?.email ?? t("profile.you");
   const subtitle = [user?.role, user?.company].filter(Boolean).join(" · ");
 
+  const hasLinkedin = Boolean(user?.linkedinUrl);
+
   const [editing, setEditing] = useState(false);
   // attributes is edited as a comma-separated string; split/trimmed on save.
-  const [form, setForm] = useState({ name: "", role: "", company: "", bio: "", attributes: "" });
+  const [form, setForm] = useState({
+    name: "",
+    role: "",
+    company: "",
+    bio: "",
+    contactChannel: "email" as "email" | "linkedin",
+    contactNote: "",
+    attributes: "",
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -152,6 +162,9 @@ function ProfileCard({ user }: { user: AuthUser | null }) {
       role: user?.role ?? "",
       company: user?.company ?? "",
       bio: user?.bio ?? "",
+      // 'linkedin' is only selectable with a stored LinkedIn URL.
+      contactChannel: user?.contactChannel === "linkedin" && hasLinkedin ? "linkedin" : "email",
+      contactNote: user?.contactNote ?? "",
       attributes: (user?.attributes ?? []).join(", "),
     });
     setError(null);
@@ -227,6 +240,37 @@ function ProfileCard({ user }: { user: AuthUser | null }) {
               value={form.bio}
               onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
               placeholder={t("profile.bioPlaceholder")}
+              rows={3}
+              maxLength={500}
+              className="w-full resize-none rounded-md border border-border bg-surface px-3.5 py-2 text-[15px] text-ink shadow-xs transition-colors placeholder:text-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-ink-soft">
+              {t("profile.contactChannel")}
+            </span>
+            <select
+              value={form.contactChannel}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, contactChannel: e.target.value as "email" | "linkedin" }))
+              }
+              className="w-full cursor-pointer rounded-md border border-border bg-surface px-3.5 py-2 text-[15px] text-ink shadow-xs transition-colors focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+            >
+              <option value="email">{t("profile.contactChannelEmail")}</option>
+              {hasLinkedin && (
+                <option value="linkedin">{t("profile.contactChannelLinkedin")}</option>
+              )}
+            </select>
+            <p className="mt-1 text-xs text-faint">{t("profile.contactChannelHint")}</p>
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-ink-soft">
+              {t("profile.contactNote")}
+            </span>
+            <textarea
+              value={form.contactNote}
+              onChange={(e) => setForm((f) => ({ ...f, contactNote: e.target.value }))}
+              placeholder={t("profile.contactNotePlaceholder")}
               rows={3}
               maxLength={500}
               className="w-full resize-none rounded-md border border-border bg-surface px-3.5 py-2 text-[15px] text-ink shadow-xs transition-colors placeholder:text-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"

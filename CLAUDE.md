@@ -7,7 +7,7 @@ Apps** — nicht übersehen:
 |---|---|---|---|
 | `/` (Repo-Root, `src/`) | Nutzer-Frontend (SPA) | React 19 + Vite + Tailwind v4 | Frontend |
 | `api/` | REST-API | Hono + node-postgres | API |
-| `admin/` | Admin-SPA (Communities/Mitglieder verwalten) | React + Vite, eigenes `styles.css` | Admin |
+| `admin/` | Admin-SPA (Communities/Mitglieder/Nutzer verwalten) | React + Vite, eigenes `styles.css` | Admin |
 
 Vierter Coolify-Service: Postgres (nur intern erreichbar, keine öffentliche Domain).
 
@@ -26,6 +26,33 @@ Vierter Coolify-Service: Postgres (nur intern erreichbar, keine öffentliche Dom
   (`api/src/skillcatalog.ts`) löst Freitext beider Sprachen per Lookup +
   Mistral-Übersetzung auf EIN Konzept auf. Backfill:
   `POST /api/admin/skills/translate` (idempotent).
+- **LinkedIn-Profilanreicherung (Unipile + Mistral):** `POST /api/me/linkedin`
+  (`api/src/routes/me.ts`) liest das Profil via Unipile (`api/src/unipile.ts`),
+  self-hosted den Avatar (Blob in `users.avatar_data`) und befüllt per Mistral
+  (`api/src/mistral.ts → extractProfileFields`) `name`, `role`, `company`, `bio`
+  + 3 `attributes` (Tags) — alles aus LinkedIn vorbefüllt, aber im Profilformular
+  (`PUT /api/me/profile`) manuell überschreibbar. SQL nutzt `coalesce`: liefert
+  das LLM für ein Feld NULL, bleibt der Bestandswert stehen. Das rohe Profil-JSON
+  (`users.linkedin_profile`) dient außerdem den Mistral-Skill-Vorschlägen
+  (`me.ts → /skill-suggestions`). Backfill für Bestandsprofile:
+  `POST /api/admin/users/:id/backfill-profile` (idempotent) — Button
+  „KI-Profilextraktion" auf der Admin-Nutzer-Detailseite (`admin/src/UserDetail.tsx`).
+  Mistral steuert insgesamt drei Aufgaben: Skill-Vorschläge, Profilfeld-Extraktion,
+  Label-Übersetzung. Alles serverseitig — Unipile-/Mistral-Keys nie im Client.
+- **Website-URL & Datei-Uploads (Profil):** `users.website_url` ist die selbst
+  eingegebene Website (kein Consent/Scraping — Auslesen kommt später),
+  bearbeitbar über `POST`/`DELETE /api/me/website` und im Profilformular direkt
+  unter der LinkedIn-Card. Sie wird wie `linkedin_url` mit derselben
+  `reveal`-Logik (`CONNECTION_GATING`) im Matching ausgespielt und auf der
+  Match-Detailseite als Globus-Icon neben LinkedIn gezeigt. Datei-Uploads (CV,
+  Pitch Deck …) liegen in `user_files` (nur Metadaten); die **Bytes auf einem
+  persistenten Volume** unter `UPLOAD_DIR` (`api/src/files.ts`) — anders als
+  Avatare, die als bytea in der DB liegen. Routen: `GET/POST/DELETE
+  /api/me/files` + `…/:id/download` (Multipart via `c.req.parseBody()`,
+  MIME-Allowlist, max 10 MB / 5 Dateien). Im Frontend Drag-&-Drop-Card im Profil;
+  **für andere Nutzer nicht sichtbar**. Admin sieht Website + Datei-Liste mit
+  Download auf der Nutzer-Detailseite (`GET /api/admin/users/:id/files/:fileId/download`).
+  ⚠️ Ohne gemountetes Volume gehen Uploads bei jedem Deploy verloren (s. `DEPLOYMENT.md`).
 - **i18n Frontend:** react-i18next, Ressourcen in `src/locales/{de,en}.json`,
   Setup `src/i18n.ts`. Explizite Sprachwahl liegt in `users.locale`
   (NULL = Browser-Erkennung) und gewinnt nach Login.

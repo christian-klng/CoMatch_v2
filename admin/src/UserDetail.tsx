@@ -275,6 +275,23 @@ export function UserDetail({ userId, onBack }: { userId: string; onBack: () => v
             </div>
           </section>
 
+          {/* Contact preferences (read-only) */}
+          <section className="card">
+            <h2>Kontakt</h2>
+            <div className="detail-row">
+              <span className="detail-key">Kommunikationskanal</span>
+              <span className="detail-val">
+                {user.contactChannel === "linkedin" ? "LinkedIn" : "E-Mail"}
+              </span>
+            </div>
+            <div className="detail-row" style={{ alignItems: "flex-start", marginTop: 8 }}>
+              <span className="detail-key">Über uns</span>
+              <span className="detail-val" style={{ whiteSpace: "pre-wrap" }}>
+                {user.contactNote ?? <em className="faint">–</em>}
+              </span>
+            </div>
+          </section>
+
           {/* Uploaded files */}
           <section className="card">
             <h2>Dateien ({user.files.length})</h2>

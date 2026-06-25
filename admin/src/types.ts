@@ -55,6 +55,10 @@ export interface AdminUserDetail extends Omit<AdminUserRow, "hasSkillSuggestions
   attributes: string[];
   /** The user's own website URL (reading the site comes later). */
   websiteUrl: string | null;
+  /** Preferred contact channel ('linkedin' only when a LinkedIn URL is set). */
+  contactChannel: "email" | "linkedin";
+  /** Free-text "about us" note used when others reach out. */
+  contactNote: string | null;
   linkedinConsentAt: string | null;
   /** Stored AI suggestions (skill IDs). null = no LinkedIn import done. */
   skillSuggestions: { seeks: string[]; offers: string[] } | null;

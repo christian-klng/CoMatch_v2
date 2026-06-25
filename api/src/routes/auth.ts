@@ -102,6 +102,8 @@ async function getUser(c: Context, id: string) {
   const { rows } = await pool.query(
     `select id, email, name, role, company,
             avatar_url as "avatarUrl", bio, attributes, locale,
+            contact_channel as "contactChannel",
+            contact_note as "contactNote",
             linkedin_url as "linkedinUrl",
             website_url as "websiteUrl",
             (linkedin_profile is not null) as "linkedinProfileRead",

@@ -111,6 +111,8 @@ export function apiUpdateProfile(data: {
   role: string;
   company: string;
   bio: string;
+  contactChannel?: "email" | "linkedin";
+  contactNote?: string;
   attributes?: string[];
 }): Promise<{ ok: true }> {
   return sendJson<{ ok: true }>("PUT", "/api/me/profile", data);

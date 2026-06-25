@@ -17,6 +17,10 @@ export interface AuthUser {
   linkedinProfileRead?: boolean;
   /** The user's own website URL (shown next to LinkedIn). */
   websiteUrl?: string | null;
+  /** Preferred contact channel ('linkedin' only when a LinkedIn URL is set). */
+  contactChannel?: "email" | "linkedin";
+  /** Free-text "about us" note used when others reach out. */
+  contactNote?: string | null;
   /** Explicitly chosen UI language; null = follow browser detection. */
   locale?: "de" | "en" | null;
 }

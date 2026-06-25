@@ -254,6 +254,8 @@ admin.get("/users/:id", async (c) => {
 
   const { rows } = await pool.query(
     `select u.id, u.email, u.name, u.role, u.company, u.bio, u.attributes,
+            u.contact_channel            as "contactChannel",
+            u.contact_note               as "contactNote",
             u.linkedin_url               as "linkedinUrl",
             u.website_url                as "websiteUrl",
             u.linkedin_consent_at        as "linkedinConsentAt",
