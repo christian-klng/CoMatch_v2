@@ -2,6 +2,7 @@ import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import type { Context, Next } from "hono";
 import { sign, verify } from "hono/jwt";
 import { SECRET } from "./auth.js";
+import { pool } from "./db.js";
 
 // Admin sessions are deliberately separate from user sessions: the token carries
 // a `scope: "admin"` claim so an admin token can't be replayed against user
@@ -59,5 +60,20 @@ export async function requireAdmin(c: Context<AdminEnv>, next: Next) {
   const adminId = token ? await verifyAdminJwt(token) : null;
   if (!adminId) return c.json({ error: "unauthorized" }, 401);
   c.set("adminId", adminId);
+  await next();
+}
+
+/**
+ * Middleware: require the current admin to be a super-admin. Must run *after*
+ * requireAdmin (reads `adminId`). Deliberately re-checks the DB on every call
+ * rather than trusting a JWT claim, so revoking someone's super status takes
+ * effect immediately instead of lingering until their token expires.
+ */
+export async function requireSuperAdmin(c: Context<AdminEnv>, next: Next) {
+  const { rows } = await pool.query<{ is_super_admin: boolean }>(
+    `select is_super_admin from admin_users where id = $1`,
+    [c.get("adminId")],
+  );
+  if (!rows[0]?.is_super_admin) return c.json({ error: "forbidden" }, 403);
   await next();
 }

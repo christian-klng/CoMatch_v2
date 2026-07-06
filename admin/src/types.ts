@@ -1,6 +1,17 @@
 export interface AdminSession {
   id: string;
   email: string;
+  /** Super-admins may manage the admin roster (the "Admins" tab). */
+  isSuperAdmin: boolean;
+}
+
+/** An admin account, as shown in the super-admin-only "Admins" tab. */
+export interface AdminAccount {
+  id: string;
+  email: string;
+  isSuperAdmin: boolean;
+  createdAt: string;
+  lastLoginAt: string | null;
 }
 
 export interface AdminCommunity {

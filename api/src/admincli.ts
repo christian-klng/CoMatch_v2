@@ -2,19 +2,27 @@
 // updates the password (acts as a password reset).
 //
 //   npm run admin:create -- admin@example.com 'the-password'
+//   npm run admin:create -- admin@example.com 'the-password' --super  # + super-admin
 //   # or via env:
 //   ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD='the-password' npm run admin:create
 //
 // In production (compiled): node dist/admincli.js admin@example.com 'the-password'
+//
+// --super promotes the account to super-admin (may manage the admin roster). It
+// only ever grants super — a plain password reset never revokes it, so re-running
+// without the flag is safe.
 import { pool } from "./db.js";
 import { hashPassword } from "./adminAuth.js";
 
 async function run() {
-  const email = (process.argv[2] ?? process.env.ADMIN_EMAIL ?? "").trim().toLowerCase();
-  const password = process.argv[3] ?? process.env.ADMIN_PASSWORD ?? "";
+  const args = process.argv.slice(2);
+  const wantSuper = args.includes("--super");
+  const positional = args.filter((a) => !a.startsWith("--"));
+  const email = (positional[0] ?? process.env.ADMIN_EMAIL ?? "").trim().toLowerCase();
+  const password = positional[1] ?? process.env.ADMIN_PASSWORD ?? "";
 
   if (!email || !email.includes("@")) {
-    console.error("Usage: admin:create <email> <password>  (a valid email is required)");
+    console.error("Usage: admin:create <email> <password> [--super]  (a valid email is required)");
     process.exit(1);
   }
   if (password.length < 8) {
@@ -23,15 +31,20 @@ async function run() {
   }
 
   const password_hash = hashPassword(password);
-  const { rows } = await pool.query<{ id: string; created: boolean }>(
-    `insert into admin_users (email, password_hash) values ($1, $2)
-     on conflict (email) do update set password_hash = excluded.password_hash
-     returning id, (xmax = 0) as created`,
-    [email, password_hash],
+  // On conflict, --super can promote (OR) but never auto-demotes: a bare
+  // password reset keeps the existing super status intact.
+  const { rows } = await pool.query<{ id: string; created: boolean; is_super_admin: boolean }>(
+    `insert into admin_users (email, password_hash, is_super_admin) values ($1, $2, $3)
+     on conflict (email) do update set
+       password_hash = excluded.password_hash,
+       is_super_admin = admin_users.is_super_admin or excluded.is_super_admin
+     returning id, (xmax = 0) as created, is_super_admin`,
+    [email, password_hash, wantSuper],
   );
 
   await pool.end();
-  console.log(`${rows[0].created ? "Created" : "Updated"} admin ${email} (${rows[0].id})`);
+  const suffix = rows[0].is_super_admin ? " [super-admin]" : "";
+  console.log(`${rows[0].created ? "Created" : "Updated"} admin ${email} (${rows[0].id})${suffix}`);
 }
 
 run().catch((err) => {

@@ -70,10 +70,21 @@ Vierter Coolify-Service: Postgres (nur intern erreichbar, keine öffentliche Dom
   (`api/src/routes/adminAuth.ts`), eigenes JWT mit `scope: "admin"` (gleiches
   `SECRET` wie User-Auth, aber nicht auf User-Routen gültig und umgekehrt).
   Passwörter (scrypt-Hash) liegen in `admin_users` (Migration 012). Admins legt
-  man per CLI an: `cd api && npm run admin:create -- <email> <passwort>` (in Prod
-  `node dist/admincli.js …`), idempotent = auch Passwort-Reset. Login-Routen
-  (`/api/admin/auth`) sind in `index.ts` **vor** `/api/admin` gemountet, damit
-  sie ungeschützt bleiben. Admin-SPA hält das Token im localStorage.
+  man per CLI an: `cd api && npm run admin:create -- <email> <passwort> [--super]`
+  (in Prod `node dist/admincli.js …`), idempotent = auch Passwort-Reset; `--super`
+  promotet nur (entzieht nie). Login-Routen (`/api/admin/auth`) sind in `index.ts`
+  **vor** `/api/admin` gemountet, damit sie ungeschützt bleiben. Admin-SPA hält
+  das Token im localStorage.
+- **Super-Admins & Admin-Verwaltung:** `admin_users.is_super_admin` (Migration
+  015; Bootstrap = ältestes Konto) trennt „darf die Admin-Liste verwalten" vom
+  normalen Admin. `requireSuperAdmin` (`api/src/adminAuth.ts`) prüft den Status
+  **frisch in der DB** (nicht als JWT-Claim → Entzug wirkt sofort). CRUD unter
+  `/api/admin/admins` (`api/src/routes/admin.ts`, jeweils `requireSuperAdmin`):
+  anlegen/Passwort-Reset/Super-Toggle/löschen. Schutzregeln: kein Selbst-Löschen
+  (`cannot_delete_self`), letzter Super-Admin nicht entfernbar/herabstufbar
+  (`last_super_admin`). `/api/admin/auth/me` liefert `isSuperAdmin`; die Admin-SPA
+  blendet den Tab „Admins" (`admin/src/AdminUsers.tsx`) nur für Super-Admins ein
+  (Server-403 als harte Absicherung).
 - **Feature-Flag `CONNECTION_GATING`** (`api/src/featureFlags.ts` +
   `src/lib/featureFlags.ts`, müssen synchron sein): aktuell `false` für die
   Testphase — Anfrage-Flow und Namens-/Foto-Maskierung sind ausgeblendet,

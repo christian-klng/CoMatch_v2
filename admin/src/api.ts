@@ -1,4 +1,4 @@
-import type { AdminCommunity, AdminMember, AdminSession, AdminUserDetail, AdminUserFile, AdminUserRow } from "./types";
+import type { AdminAccount, AdminCommunity, AdminMember, AdminSession, AdminUserDetail, AdminUserFile, AdminUserRow } from "./types";
 
 // Base URL of the API, baked in at build time via the VITE_API_URL build-arg
 // (set it in Coolify, same value the frontend uses).
@@ -29,6 +29,19 @@ export class UnauthorizedError extends Error {
   }
 }
 
+/** Thrown on a non-2xx response; `code` carries the API's `{ error }` string
+ *  (e.g. "email_taken") so callers can show a specific message. */
+export class ApiError extends Error {
+  code: string;
+  status: number;
+  constructor(code: string, status: number) {
+    super(code);
+    this.name = "ApiError";
+    this.code = code;
+    this.status = status;
+  }
+}
+
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {};
@@ -44,7 +57,16 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
     clearToken();
     throw new UnauthorizedError();
   }
-  if (!res.ok) throw new Error(`${method} ${path} → ${res.status} ${res.statusText}`);
+  if (!res.ok) {
+    let code = String(res.status);
+    try {
+      const err = (await res.json()) as { error?: string };
+      if (err && typeof err.error === "string") code = err.error;
+    } catch {
+      /* non-JSON error body — keep the status code */
+    }
+    throw new ApiError(code, res.status);
+  }
   return (await res.json()) as T;
 }
 
@@ -170,4 +192,28 @@ export function backfillUserProfile(id: string): Promise<{
   fields: { role: string | null; company: string | null; bio: string | null; attributes: string[] };
 }> {
   return call("POST", `/api/admin/users/${id}/backfill-profile`);
+}
+
+// --- Admins (super-admin only) --------------------------------------------
+export function listAdmins(): Promise<AdminAccount[]> {
+  return call<AdminAccount[]>("GET", "/api/admin/admins");
+}
+
+export function createAdmin(input: {
+  email: string;
+  password: string;
+  isSuperAdmin: boolean;
+}): Promise<AdminAccount> {
+  return call<AdminAccount>("POST", "/api/admin/admins", input);
+}
+
+export function updateAdmin(
+  id: string,
+  patch: { password?: string; isSuperAdmin?: boolean },
+): Promise<AdminAccount> {
+  return call<AdminAccount>("PATCH", `/api/admin/admins/${id}`, patch);
+}
+
+export function deleteAdmin(id: string): Promise<{ ok: true }> {
+  return call<{ ok: true }>("DELETE", `/api/admin/admins/${id}`);
 }

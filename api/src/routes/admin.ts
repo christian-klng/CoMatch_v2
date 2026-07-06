@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { pool } from "../db.js";
 import { extractProfileFields, mistralConfigured, translateSkillLabels } from "../mistral.js";
-import { type AdminEnv, requireAdmin } from "../adminAuth.js";
+import { type AdminEnv, hashPassword, requireAdmin, requireSuperAdmin } from "../adminAuth.js";
 import { readFileBytes } from "../files.js";
 
 // Lean community admin. Every route requires a valid admin session (email +
@@ -471,4 +471,119 @@ admin.post("/skills/translate", async (c) => {
     )
   ).rows[0].n;
   return c.json({ translated, skipped, remaining });
+});
+
+// ── Admins ───────────────────────────────────────────────────────────────
+// Manage the admin roster itself. Every route here additionally requires a
+// *super*-admin (requireSuperAdmin runs after the global requireAdmin). Applied
+// per-route rather than via `/admins/*` because that pattern wouldn't cover the
+// bare `/admins` path. Password rules mirror the admin:create CLI (≥ 8 chars).
+const ADMIN_COLS = `
+  id, email, is_super_admin as "isSuperAdmin",
+  created_at as "createdAt", last_login_at as "lastLoginAt"
+`;
+
+/** Count the super-admins — used to block removing/demoting the last one. */
+async function superAdminCount(): Promise<number> {
+  const { rows } = await pool.query<{ n: number }>(
+    `select count(*)::int as n from admin_users where is_super_admin`,
+  );
+  return rows[0].n;
+}
+
+// GET /api/admin/admins → the full admin roster, oldest first.
+admin.get("/admins", requireSuperAdmin, async (c) => {
+  const { rows } = await pool.query(
+    `select ${ADMIN_COLS} from admin_users order by created_at asc`,
+  );
+  return c.json(rows);
+});
+
+// POST /api/admin/admins { email, password, isSuperAdmin? } → create an admin.
+admin.post("/admins", requireSuperAdmin, async (c) => {
+  const body = await c.req
+    .json<{ email?: string; password?: string; isSuperAdmin?: boolean }>()
+    .catch(() => ({}) as { email?: string; password?: string; isSuperAdmin?: boolean });
+  const email = body.email?.trim().toLowerCase();
+  const password = body.password ?? "";
+  if (!email || !email.includes("@")) return c.json({ error: "invalid_email" }, 400);
+  if (password.length < 8) return c.json({ error: "password_too_short" }, 400);
+
+  try {
+    const { rows } = await pool.query(
+      `insert into admin_users (email, password_hash, is_super_admin)
+       values ($1, $2, $3)
+       returning ${ADMIN_COLS}`,
+      [email, hashPassword(password), Boolean(body.isSuperAdmin)],
+    );
+    return c.json(rows[0], 201);
+  } catch (e: unknown) {
+    if ((e as { code?: string })?.code === "23505") return c.json({ error: "email_taken" }, 409);
+    throw e;
+  }
+});
+
+// PATCH /api/admin/admins/:id { password?, isSuperAdmin? } → reset password
+// and/or toggle super status.
+admin.patch("/admins/:id", requireSuperAdmin, async (c) => {
+  const id = c.req.param("id");
+  const body = await c.req
+    .json<{ password?: string; isSuperAdmin?: boolean }>()
+    .catch(() => ({}) as { password?: string; isSuperAdmin?: boolean });
+
+  const target = (
+    await pool.query<{ is_super_admin: boolean }>(
+      `select is_super_admin from admin_users where id = $1`,
+      [id],
+    )
+  ).rows[0];
+  if (!target) return c.json({ error: "not_found" }, 404);
+
+  const sets: string[] = [];
+  const vals: unknown[] = [id];
+  const add = (col: string, val: unknown) => {
+    vals.push(val);
+    sets.push(`${col} = $${vals.length}`);
+  };
+
+  if (typeof body.password === "string") {
+    if (body.password.length < 8) return c.json({ error: "password_too_short" }, 400);
+    add("password_hash", hashPassword(body.password));
+  }
+  if (typeof body.isSuperAdmin === "boolean") {
+    // Demoting the last remaining super-admin would lock everyone out of admin
+    // management — refuse it.
+    if (target.is_super_admin && !body.isSuperAdmin && (await superAdminCount()) <= 1) {
+      return c.json({ error: "last_super_admin" }, 409);
+    }
+    add("is_super_admin", body.isSuperAdmin);
+  }
+  if (sets.length === 0) return c.json({ error: "nothing_to_update" }, 400);
+
+  const { rows } = await pool.query(
+    `update admin_users set ${sets.join(", ")} where id = $1 returning ${ADMIN_COLS}`,
+    vals,
+  );
+  return c.json(rows[0]);
+});
+
+// DELETE /api/admin/admins/:id → remove an admin account.
+admin.delete("/admins/:id", requireSuperAdmin, async (c) => {
+  const id = c.req.param("id");
+  // Self-lockout guard: you can't delete your own account.
+  if (id === c.get("adminId")) return c.json({ error: "cannot_delete_self" }, 400);
+
+  const target = (
+    await pool.query<{ is_super_admin: boolean }>(
+      `select is_super_admin from admin_users where id = $1`,
+      [id],
+    )
+  ).rows[0];
+  if (!target) return c.json({ error: "not_found" }, 404);
+  if (target.is_super_admin && (await superAdminCount()) <= 1) {
+    return c.json({ error: "last_super_admin" }, 409);
+  }
+
+  await pool.query(`delete from admin_users where id = $1`, [id]);
+  return c.json({ ok: true });
 });

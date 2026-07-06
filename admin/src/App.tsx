@@ -13,9 +13,10 @@ import {
 } from "./api";
 import { CommunityDetail } from "./CommunityDetail";
 import { UserDetail } from "./UserDetail";
+import { AdminUsers } from "./AdminUsers";
 import { Login } from "./Login";
 
-type Tab = "communities" | "users";
+type Tab = "communities" | "users" | "admins";
 
 export function App() {
   // undefined = checking stored token, null = logged out, object = logged in.
@@ -153,6 +154,11 @@ function Dashboard({ admin, onLogout }: { admin: AdminSession; onLogout: () => v
         <button className={`tab ${tab === "users" ? "active" : ""}`} onClick={() => setTab("users")}>
           Nutzer
         </button>
+        {admin.isSuperAdmin && (
+          <button className={`tab ${tab === "admins" ? "active" : ""}`} onClick={() => setTab("admins")}>
+            Admins
+          </button>
+        )}
       </div>
 
       {/* ── Communities ── */}
@@ -275,6 +281,11 @@ function Dashboard({ admin, onLogout }: { admin: AdminSession; onLogout: () => v
             </div>
           </section>
         </>
+      )}
+
+      {/* ── Admins (nur Super-Admin) ── */}
+      {tab === "admins" && admin.isSuperAdmin && (
+        <AdminUsers currentAdminId={admin.id} onUnauthorized={onLogout} />
       )}
     </div>
   );

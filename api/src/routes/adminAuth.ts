@@ -51,11 +51,11 @@ adminAuth.post("/login", async (c) => {
   return c.json({ token });
 });
 
-// GET /api/admin/auth/me (Bearer) → { id, email } — lets the SPA validate a
-// stored token on startup.
+// GET /api/admin/auth/me (Bearer) → { id, email, isSuperAdmin } — lets the SPA
+// validate a stored token on startup and decide whether to show the Admins tab.
 adminAuth.get("/me", requireAdmin, async (c) => {
-  const { rows } = await pool.query<{ id: string; email: string }>(
-    `select id, email from admin_users where id = $1`,
+  const { rows } = await pool.query<{ id: string; email: string; isSuperAdmin: boolean }>(
+    `select id, email, is_super_admin as "isSuperAdmin" from admin_users where id = $1`,
     [c.get("adminId")],
   );
   if (!rows[0]) return c.json({ error: "not_found" }, 404);
