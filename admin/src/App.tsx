@@ -259,6 +259,14 @@ function Dashboard({ admin, onLogout }: { admin: AdminSession; onLogout: () => v
                         LinkedIn-URL
                       </span>
                     ) : null}
+                    {u.fileCount > 0 && (
+                      <span
+                        className="tag draft"
+                        title={`${u.fileCount} Dokument${u.fileCount !== 1 ? "e" : ""} hochgeladen`}
+                      >
+                        📄 {u.fileCount}
+                      </span>
+                    )}
                   </div>
                   <p className="muted small">{u.email ?? "–"}{u.role ? ` · ${u.role}` : ""}</p>
                   <p className="faint small">{new Date(u.createdAt).toLocaleDateString("de-DE")} ›</p>

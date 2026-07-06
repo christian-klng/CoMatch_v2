@@ -38,6 +38,8 @@ export interface AdminUserRow {
   hasSkillSuggestions: boolean;
   createdAt: string;
   communityCount: number;
+  /** How many documents the user uploaded about their startup (max 5). */
+  fileCount: number;
 }
 
 /** A file the user uploaded about themselves (CV, pitch deck, …). */
@@ -49,7 +51,7 @@ export interface AdminUserFile {
   createdAt: string;
 }
 
-export interface AdminUserDetail extends Omit<AdminUserRow, "hasSkillSuggestions"> {
+export interface AdminUserDetail extends Omit<AdminUserRow, "hasSkillSuggestions" | "fileCount"> {
   bio: string | null;
   /** Profile tags (max 3) — prefilled from LinkedIn, editable, backfillable. */
   attributes: string[];

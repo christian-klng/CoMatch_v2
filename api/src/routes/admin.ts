@@ -238,7 +238,9 @@ admin.get("/users", async (c) => {
             (u.skill_suggestions is not null) as "hasSkillSuggestions",
             u.created_at                 as "createdAt",
             (select count(*)::int from community_members m where m.user_id = u.id)
-                                         as "communityCount"
+                                         as "communityCount",
+            (select count(*)::int from user_files f where f.user_id = u.id)
+                                         as "fileCount"
        from users u
       where $1 = '' or u.email ilike $2 or u.name ilike $2
       order by u.created_at desc
